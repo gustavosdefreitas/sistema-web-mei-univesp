@@ -112,6 +112,7 @@ async def dashboard(request: Request):
 <a href="/vendas/nova" class="btn btn-success btn-sm">🛒 Nova Venda</a>
 <a href="/usuarios" class="btn btn-warning btn-sm">👥 Usuários</a>
 <a href="/produtos" class="btn btn-primary btn-sm">📦 Produtos</a>
+<a href="/empresas" class="btn btn-success btn-sm">🏢 Empresas</a>
 <a href="/minha-conta" class="btn btn-info btn-sm">⚙️ Minha Conta</a>
 <a href="/logout/" class="btn btn-outline-light btn-sm">🚪 Sair</a>
 </div>
@@ -852,3 +853,217 @@ async def deletar_produto(request: Request, produto_id: int):
     conn.commit()
     conn.close()
     return RedirectResponse(url="/produtos", status_code=303)
+
+#EMPRESAS
+@app.get("/empresas", response_class=HTMLResponse)
+async def empresas_page(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/login", status_code=303)
+    
+    conn = get_db()
+    empresas = conn.execute("""
+        SELECT id, cnpj, razao_social, nome_fantasia, email, ativo 
+        FROM empresas 
+        WHERE ativo = 1
+        ORDER BY razao_social
+    """).fetchall()
+    conn.close()
+    
+    return HTMLResponse(content=f"""
+<!DOCTYPE html>
+<html><head>
+<title>🏢 Empresas</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head><body class="bg-light">
+<nav class="navbar navbar-dark bg-primary">
+<div class="container">
+<a class="navbar-brand" href="/">📦 Estoque MEI</a>
+<a href="/" class="btn btn-outline-light me-2">← Dashboard</a>
+<a href="/produtos" class="btn btn-outline-light me-2">📦 Produtos</a>
+<a href="/logout/" class="btn btn-outline-light">Sair</a>
+</div>
+</nav>
+<div class="container py-4">
+<h1 class="mb-4"><i class="fas fa-building text-success me-2"></i>Gerenciar Empresas</h1>
+
+<!-- Form Nova Empresa -->
+<div class="card shadow mb-4">
+<div class="card-header bg-success text-white">
+<h5><i class="fas fa-plus me-2"></i>Nova Empresa</h5>
+</div>
+<div class="card-body">
+<form method="POST" action="/empresas/nova">
+<div class="row">
+<div class="col-md-3 mb-3">
+<input name="cnpj" class="form-control" placeholder="00.000.000/0001-00" maxlength="18" required>
+</div>
+<div class="col-md-4 mb-3">
+<input name="razao_social" class="form-control" placeholder="Razão Social" required>
+</div>
+<div class="col-md-3 mb-3">
+<input name="nome_fantasia" class="form-control" placeholder="Nome Fantasia">
+</div>
+<div class="col-md-2 mb-3">
+<button class="btn btn-success w-100 py-2">➕ Criar</button>
+</div>
+</div>
+</form>
+</div>
+</div>
+
+<!-- Lista Empresas -->
+<div class="card shadow">
+<div class="card-header bg-success text-white">
+<h5><i class="fas fa-list me-2"></i>Empresas ({len(empresas)})</h5>
+</div>
+<div class="card-body p-0">
+<div class="table-responsive">
+<table class="table table-hover mb-0">
+<thead class="table-dark">
+<tr><th>CNPJ</th><th>Razão Social</th><th>Fantasia</th><th>Email</th><th>Status</th><th>Ações</th></tr>
+</thead>
+<tbody>
+""" + "".join([f"""
+<tr>
+<td><strong>{e['cnpj']}</strong></td>
+<td>{e['razao_social']}</td>
+<td>{e['nome_fantasia'] or '-'}</td>
+<td>{e['email'] or '-'}</td>
+<td class="text-center">
+<span class="badge {'bg-success' if e['ativo'] else 'bg-secondary'}">
+{'Ativa' if e['ativo'] else 'Inativa'}
+</span>
+</td>
+<td>
+<a href="/empresas/editar/{e['id']}" class="btn btn-sm btn-primary me-1"><i class="fas fa-edit"></i></a>
+<form method="POST" action="/empresas/deletar/{e['id']}" style="display:inline" 
+onsubmit="return confirm('Excluir {e['razao_social']}?')">
+<button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+</form>
+</td>
+</tr>
+""" for e in empresas]) + """
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>
+    """)
+
+@app.post("/empresas/nova")
+async def criar_empresa(request: Request, cnpj: str = Form(...), razao_social: str = Form(...), 
+                       nome_fantasia: str = Form(None), email: str = Form(None)):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401)
+    
+    # Limpa formatação CNPJ
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    
+    conn = get_db()
+    try:
+        conn.execute("INSERT INTO empresas (cnpj, razao_social, nome_fantasia, email) VALUES (?, ?, ?, ?)", 
+                    (cnpj_limpo, razao_social.strip(), nome_fantasia, email))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        return HTMLResponse(content="❌ CNPJ já cadastrado!", status_code=400)
+    conn.close()
+    return RedirectResponse(url="/empresas", status_code=303)
+
+@app.get("/empresas/editar/{empresa_id}", response_class=HTMLResponse)
+async def editar_empresa(request: Request, empresa_id: int):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/login", status_code=303)
+    
+    conn = get_db()
+    empresa = conn.execute("SELECT * FROM empresas WHERE id = ?", (empresa_id,)).fetchone()
+    conn.close()
+    
+    if not empresa:
+        return HTMLResponse(content="<h1>❌ Empresa não encontrada!</h1><a href='/empresas'>Voltar</a>", status_code=404)
+    
+    return HTMLResponse(content=f"""
+<!DOCTYPE html>
+<html><head>
+<title>✏️ Editar Empresa</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head><body class="bg-light">
+<nav class="navbar navbar-dark bg-primary">
+<div class="container">
+<a class="navbar-brand" href="/">📦 Estoque MEI</a>
+<a href="/empresas" class="btn btn-outline-light me-2">← Empresas</a>
+<a href="/logout/" class="btn btn-outline-light">Sair</a>
+</div>
+</nav>
+<div class="container py-5">
+<div class="row justify-content-center">
+<div class="col-md-8">
+<div class="card shadow-lg">
+<div class="card-header bg-warning text-dark">
+<h4><i class="fas fa-edit me-2"></i>Editar Empresa</h4>
+</div>
+<div class="card-body">
+<form method="POST" action="/empresas/atualizar/{empresa['id']}">
+<div class="row">
+<div class="col-md-3 mb-3">
+<label class="form-label fw-bold">🏢 CNPJ</label>
+<input type="text" name="cnpj" class="form-control form-control-lg" value="{empresa['cnpj']}" required>
+</div>
+<div class="col-md-4 mb-3">
+<label class="form-label fw-bold">📝 Razão Social</label>
+<input type="text" name="razao_social" class="form-control form-control-lg" value="{empresa['razao_social']}" required>
+</div>
+<div class="col-md-3 mb-3">
+<label class="form-label fw-bold">🏪 Nome Fantasia</label>
+<input type="text" name="nome_fantasia" class="form-control form-control-lg" value="{empresa['nome_fantasia'] or ''}">
+</div>
+<div class="col-md-2 mb-3">
+<label class="form-label fw-bold">✉️ Email</label>
+<input type="email" name="email" class="form-control form-control-lg" value="{empresa['email'] or ''}">
+</div>
+</div>
+<div class="d-grid gap-2 d-md-flex justify-content-end">
+<a href="/empresas" class="btn btn-secondary px-4">Cancelar</a>
+<button type="submit" class="btn btn-warning btn-lg px-5">
+<i class="fas fa-save me-2"></i>Atualizar
+</button>
+</div>
+</form>
+</div>
+</div>
+</div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>
+    """)
+
+@app.post("/empresas/atualizar/{empresa_id}")
+async def atualizar_empresa(request: Request, empresa_id: int, cnpj: str = Form(...), 
+                          razao_social: str = Form(...), nome_fantasia: str = Form(None), 
+                          email: str = Form(None)):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401)
+    
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    
+    conn = get_db()
+    conn.execute("""
+        UPDATE empresas SET cnpj = ?, razao_social = ?, nome_fantasia = ?, email = ? 
+        WHERE id = ?""", (cnpj_limpo, razao_social.strip(), nome_fantasia, email, empresa_id))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/empresas", status_code=303)
+
+@app.post("/empresas/deletar/{empresa_id}")
+async def deletar_empresa(request: Request, empresa_id: int):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401)
+    
+    conn = get_db()
+    conn.execute("DELETE FROM empresas WHERE id = ?", (empresa_id,))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/empresas", status_code=303)
