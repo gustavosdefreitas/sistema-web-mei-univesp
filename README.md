@@ -6,11 +6,13 @@ Este projeto é uma aplicação em Python desenvolvida para o gerenciamento de e
 * Cadastro de novos produtos.
 * Listagem de estoque atual.
 * Atualização de quantidades.
-* [Adicione aqui outras funções que seu código faz]
+* Cadastro de multiempresas
+* Cadastro de Usuários
 
 ## 🛠️ Tecnologias Utilizadas
 * **Python 3.x**
-* [Bibliotecas que usou, ex: Pandas, SQLite, Flask...]
+* **SQLite**
+* **Javascript**
 
 ## 🔧 Como Rodar o Projeto
 1. Clone o repositório:
