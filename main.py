@@ -111,6 +111,7 @@ async def dashboard(request: Request):
 <div class="d-flex gap-2">
 <a href="/vendas/nova" class="btn btn-success btn-sm">🛒 Nova Venda</a>
 <a href="/usuarios" class="btn btn-warning btn-sm">👥 Usuários</a>
+<a href="/fornecedores" class="btn btn-danger btn-sm me-1">🏭 Fornecedores</a>
 <a href="/produtos" class="btn btn-primary btn-sm">📦 Produtos</a>
 <a href="/empresas" class="btn btn-success btn-sm">🏢 Empresas</a>
 <a href="/minha-conta" class="btn btn-info btn-sm">⚙️ Minha Conta</a>
@@ -1067,3 +1068,143 @@ async def deletar_empresa(request: Request, empresa_id: int):
     conn.commit()
     conn.close()
     return RedirectResponse(url="/empresas", status_code=303)
+
+# 🏭 CRUD FORNECEDORES SIMPLES
+@app.get("/fornecedores", response_class=HTMLResponse)
+async def fornecedores_page(request: Request):
+    conn = get_db()
+    fornecedores = conn.execute("SELECT * FROM fornecedores ORDER BY nome").fetchall()
+    conn.close()
+    
+    return HTMLResponse(content=f"""
+<!DOCTYPE html>
+<html><head>
+<title>🏭 Fornecedores</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head><body class="bg-light">
+<nav class="navbar navbar-dark bg-primary">
+<div class="container">
+<a class="navbar-brand" href="/">📦 Estoque MEI</a>
+<a href="/" class="btn btn-outline-light me-2">← Dashboard</a>
+<a href="/produtos" class="btn btn-primary btn-sm me-1">📦 Produtos</a>
+<a href="/logout/" class="btn btn-outline-light">🚪 Sair</a>
+</div>
+</nav>
+<div class="container py-4">
+<h1 class="mb-4"><i class="fas fa-truck text-danger me-2"></i>Fornecedores</h1>
+
+<!-- Form Novo -->
+<div class="card mb-4 shadow">
+<div class="card-header bg-success text-white">
+<h5><i class="fas fa-plus me-2"></i>Novo Fornecedor</h5>
+</div>
+<div class="card-body">
+<form method="POST" action="/fornecedores/novo">
+<div class="row">
+<div class="col-md-4 mb-3"><input name="nome" class="form-control" placeholder="Nome *" required></div>
+<div class="col-md-3 mb-3"><input name="cnpj" class="form-control" placeholder="CNPJ"></div>
+<div class="col-md-2 mb-3"><input name="telefone" class="form-control" placeholder="Telefone"></div>
+<div class="col-md-3 mb-3"><input name="email" type="email" class="form-control" placeholder="E-mail"></div>
+<div class="col-md-12"><button class="btn btn-success w-100">➕ Criar</button></div>
+</div>
+</form>
+</div>
+</div>
+
+<!-- Lista -->
+<div class="card shadow">
+<div class="card-header bg-danger text-white">
+<h5><i class="fas fa-list me-2"></i>Fornecedores ({len(fornecedores)})</h5>
+</div>
+<div class="card-body p-0">
+<table class="table table-hover mb-0">
+<thead class="table-dark">
+<tr><th>ID</th><th>Nome</th><th>CNPJ</th><th>Telefone</th><th>E-mail</th><th>Ações</th></tr>
+</thead>
+<tbody>
+""" + "".join([f"""
+<tr>
+<td><strong>#{f['id']}</strong></td>
+<td>{f['nome']}</td>
+<td>{f['cnpj'] or '-'}</td>
+<td>{f['telefone'] or '-'}</td>
+<td>{f['email'] or '-'}</td>
+<td class="text-center">
+<a href="/fornecedores/editar/{f['id']}" class="btn btn-sm btn-primary me-1"><i class="fas fa-edit"></i></a>
+<form method="POST" action="/fornecedores/deletar/{f['id']}" style="display:inline" onsubmit="return confirm('Excluir {f['nome']}?')">
+<button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+</form>
+</td>
+</tr>
+""" for f in fornecedores]) + """
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>
+    """)
+
+@app.post("/fornecedores/novo")
+async def novo_fornecedor(nome: str = Form(...), cnpj: str = Form(None), telefone: str = Form(None), email: str = Form(None)):
+    conn = get_db()
+    conn.execute("INSERT INTO fornecedores (nome, cnpj, telefone, email) VALUES (?, ?, ?, ?)", (nome, cnpj, telefone, email))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/fornecedores", status_code=303)
+
+@app.get("/fornecedores/editar/{id}", response_class=HTMLResponse)
+async def editar_fornecedor(id: int):
+    conn = get_db()
+    f = conn.execute("SELECT * FROM fornecedores WHERE id = ?", (id,)).fetchone()
+    conn.close()
+    return HTMLResponse(content=f"""
+<!DOCTYPE html>
+<html><head>
+<title>Editar Fornecedor</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head><body class="bg-light">
+<div class="container py-5">
+<div class="row justify-content-center">
+<div class="col-md-6">
+<div class="card shadow">
+<div class="card-header bg-primary text-white">
+<h5><i class="fas fa-edit me-2"></i>Editar {f['nome']}</h5>
+</div>
+<div class="card-body">
+<form method="POST" action="/fornecedores/atualizar/{id}">
+<input name="nome" value="{f['nome']}" class="form-control mb-3" required>
+<input name="cnpj" value="{f['cnpj'] or ''}" class="form-control mb-3" placeholder="CNPJ">
+<input name="telefone" value="{f['telefone'] or ''}" class="form-control mb-3" placeholder="Telefone">
+<input name="email" value="{f['email'] or ''}" type="email" class="form-control mb-3" placeholder="E-mail">
+<div class="d-flex gap-2">
+<button class="btn btn-primary flex-grow-1">💾 Salvar</button>
+<a href="/fornecedores" class="btn btn-secondary">❌ Cancelar</a>
+</div>
+</form>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>
+    """)
+
+@app.post("/fornecedores/atualizar/{id}")
+async def atualizar_fornecedor(id: int, nome: str = Form(...), cnpj: str = Form(None), telefone: str = Form(None), email: str = Form(None)):
+    conn = get_db()
+    conn.execute("UPDATE fornecedores SET nome=?, cnpj=?, telefone=?, email=? WHERE id=?", (nome, cnpj, telefone, email, id))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/fornecedores", status_code=303)
+
+@app.post("/fornecedores/deletar/{id}")
+async def deletar_fornecedor(id: int):
+    conn = get_db()
+    conn.execute("DELETE FROM fornecedores WHERE id=?", (id,))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/fornecedores", status_code=303)
