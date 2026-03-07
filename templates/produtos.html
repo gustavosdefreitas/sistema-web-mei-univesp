@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Gerenciar Produtos</h4>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">➕ Novo</button>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead><tr><th>Nome</th><th>Estoque</th><th>Empresa</th><th>Preço</th><th>Ações</th></tr></thead>
+            <tbody>
+                {% for p in produtos %}
+                <tr>
+                    <td>{{ p.nome }}</td>
+                    <td>{{ p.quantidade }}</td>
+                    <td>{{ p.nome_empresa or 'Não vinculada' }}</td>
+                    <td>R$ {{ "%.2f"|format(p.preco) }}</td>
+                    <td><a href="/produtos/deletar/{{ p.id }}" class="btn btn-outline-danger btn-sm">🗑️</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/produtos/novo" method="POST" class="modal-content">
+            <div class="modal-header"><h5>Cadastrar Produto</h5></div>
+            <div class="modal-body">
+                <input name="nome" placeholder="Nome" class="form-control mb-3" required>
+                <input name="quantidade" type="number" placeholder="Quantidade" class="form-control mb-3" required>
+                <input name="preco" type="number" step="0.01" placeholder="Preço" class="form-control mb-3" required>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-success w-100">Salvar Produto</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

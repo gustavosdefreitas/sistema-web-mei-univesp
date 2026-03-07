@@ -1,32 +1,29 @@
-# Sistema de Controle de Estoque (Univesp) 📦
+# Sistema de Controle de Estoque Multi-Empresa 📦
 
-Este projeto é uma aplicação em Python desenvolvida para o gerenciamento de estoque, permitindo o cadastro, consulta e controle de produtos.
+Projeto desenvolvido para a disciplina de Projeto Integrador da **Univesp**. O sistema permite o gerenciamento de estoque, vendas, fornecedores e usuários para múltiplas empresas em uma única interface.
 
-## 🚀 Funcionalidades
-* Cadastro de novos produtos.
-* Listagem de estoque atual.
-* Atualização de quantidades.
-* Cadastro de multiempresas
-* Cadastro de Usuários
+## 🚀 Requisitos Atendidos (Checklist Univesp)
+
+- **Framework Web:** Desenvolvido com **FastAPI** (Python).
+- **Banco de Dados:** Utilização de **SQLite** com relacionamentos entre Empresas e Produtos.
+- **Script Web (JS):** Implementação de gráficos dinâmicos utilizando a biblioteca **Chart.js**.
+- **Nuvem:** Preparado para deploy em plataformas como Render/Railway.
+- **Acessibilidade:** Uso de tags semânticas HTML5, atributos ARIA e cores de alto contraste via Bootstrap 5.
+- **Controle de Versão:** Repositório gerenciado via **Git/GitHub**.
+- **Integração Contínua (CI):** Workflow configurado via **GitHub Actions** para automação de testes.
+- **Testes Unitários:** Suite de testes automatizados utilizando **Pytest**.
+- **Análise de Dados:** Dashboard com indicadores de performance e gráfico de distribuição de estoque.
+- **API:** Endpoint disponível em `/api/produtos/{id}` para fornecimento de dados.
 
 ## 🛠️ Tecnologias Utilizadas
-* **Python 3.x**
-* **SQLite**
-* **Javascript**
 
-## 🔧 Como Rodar o Projeto
-1. Clone o repositório:
-   ```bash
-   git clone [https://github.com/gustavosdefreitas/sistemaweb.git](https://github.com/gustavosdefreitas/sistemaweb.git)
+* Python 3.14
+* FastAPI & Uvicorn
+* Jinja2 (Templates)
+* SQLite
+* Bootstrap 5 & Chart.js
 
-## Acessando a pasta do projeto
-cd estoque_python
-
-## Crie o ambiente virtual (Opcional)
-python -m venv venv
-
-## Execute o script principal
-python main.py
-
-👤 Autor
-Gustavo de Freitas
+## 📉 Como rodar os testes
+Para validar a integridade do código, execute:
+```bash
+python -m pytest

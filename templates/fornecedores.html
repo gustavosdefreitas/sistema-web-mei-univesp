@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Fornecedores - Estoque MEI{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h4 class="mb-0 fw-bold text-primary"><i class="fas fa-truck me-2"></i>Fornecedores</h4>
+        <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#modalFornecedor">
+            <i class="fas fa-plus me-1"></i> Novo Fornecedor
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome / Empresa</th>
+                        <th>CNPJ</th>
+                        <th>Contato</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in fornecedores %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold">{{ f.nome }}</div>
+                            <div class="small text-muted">{{ f.email or 'Sem e-mail' }}</div>
+                        </td>
+                        <td>{{ f.cnpj or '---' }}</td>
+                        <td>{{ f.telefone or '---' }}</td>
+                        <td class="text-center">
+                            <a href="/fornecedores/deletar/{{ f.id }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('Excluir este fornecedor?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center py-4 text-muted">Nenhum fornecedor cadastrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalFornecedor" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/fornecedores/novo" method="POST" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cadastrar Fornecedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" name="nome" placeholder="Nome da Empresa/Fornecedor" class="form-control mb-3" required>
+                <input type="text" name="cnpj" placeholder="CNPJ (opcional)" class="form-control mb-3">
+                <input type="text" name="telefone" placeholder="Telefone" class="form-control mb-3">
+                <input type="email" name="email" placeholder="E-mail de contato" class="form-control mb-3">
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary w-100">Salvar Fornecedor</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
