@@ -8,15 +8,24 @@
     </div>
     <div class="card-body">
         <table class="table table-hover">
-            <thead><tr><th>Nome</th><th>Estoque</th><th>Empresa</th><th>Preço</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Nome</th><th>Estoque</th><th>Empresa</th><th>Fornecedor</th><th>Preço</th><th>Ações</th></tr></thead>
             <tbody>
                 {% for p in produtos %}
                 <tr>
                     <td>{{ p.nome }}</td>
                     <td>{{ p.quantidade }}</td>
-                    <td>{{ p.nome_empresa or 'Não vinculada' }}</td>
+                    <td>{% if p.empresa_nome %}
+                             {{ p.empresa_nome }}
+                        {% else %}
+                            <span class="text-danger">Não vinculada</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ p.fornecedor_nome if p.fornecedor_nome else 'Não vinculado' }}</td>
                     <td>R$ {{ "%.2f"|format(p.preco) }}</td>
-                    <td><a href="/produtos/deletar/{{ p.id }}" class="btn btn-outline-danger btn-sm">🗑️</a></td>
+                    <td>
+                        <a href="/produtos/editar/{{ p.id }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                        <a href="/produtos/deletar/{{ p.id }}" class="btn btn-outline-danger btn-sm">🗑️</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -79,6 +79,13 @@ async def dashboard(request: Request):
         GROUP BY e.id
     """).fetchall()
 
+    dados_fornecedores = conn.execute("""
+        SELECT f.nome, COUNT(p.id)
+        FROM produtos p
+        JOIN fornecedores f ON p.fornecedor_id = f.id
+        GROUP BY f.nome
+    """).fetchall()
+
     # Prepara listas para o JavaScript ler
     labels = [d['nome_fantasia'] for d in dados_grafico]
     valores = [d['total'] for d in dados_grafico]
@@ -111,9 +118,10 @@ async def listar_produtos(request: Request):
     conn = get_db()
     # Busca produtos e o nome da empresa correspondente
     produtos = conn.execute("""
-        SELECT p.*, e.nome_fantasia as nome_empresa 
-        FROM produtos p 
+        SELECT p.*, e.nome_fantasia AS empresa_nome, f.nome AS fornecedor_nome
+        FROM produtos p
         LEFT JOIN empresas e ON p.empresa_id = e.id
+        LEFT JOIN fornecedores f ON p.fornecedor_id = f.id
     """).fetchall()
     
     # Busca todas as empresas para preencher o campo de seleção no formulário
@@ -127,6 +135,7 @@ async def listar_produtos(request: Request):
         "empresas": empresas
     })
 
+#NOVO PRODUTO
 @app.post("/produtos/novo")
 async def novo_produto(
     nome: str = Form(...), 
@@ -143,6 +152,37 @@ async def novo_produto(
     conn.close()
     return RedirectResponse(url="/produtos", status_code=303)
 
+#EDITAR PRODUTO
+@app.get("/produtos/editar/{id}", response_class=HTMLResponse)
+async def editar_produto_page(request: Request, id: int):
+    user = get_current_user(request)
+    if not user: return RedirectResponse(url="/login", status_code=303)
+    
+    conn = get_db()
+    # Busca o produto
+    produto = conn.execute("SELECT * FROM produtos WHERE id = ?", (id,)).fetchone()
+    # Busca todas as empresas para o SELECT
+    empresas = conn.execute("SELECT id, nome_fantasia FROM empresas").fetchall()
+    # Busca todos os fornecedores para o SELECT
+    fornecedores = conn.execute("SELECT id, nome FROM fornecedores").fetchall()
+    conn.close()
+    
+    return templates.TemplateResponse("editar_produto.html", {
+       "request": request, "user": user, "produto": produto,
+        "empresas": empresas, "fornecedores": fornecedores
+    })
+
+@app.post("/produtos/editar/{id}")
+async def atualizar_produto(id: int, nome: str = Form(...), quantidade: int = Form(...), preco: float = Form(...), empresa_id: int = Form(...), fornecedor_id: int = Form(...)):
+    conn = get_db()
+    conn.execute("""
+       UPDATE produtos SET nome=?, quantidade=?, preco=?, empresa_id=?, fornecedor_id=?
+        WHERE id=? """, (nome, quantidade, preco, empresa_id, fornecedor_id, id))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/produtos", status_code=303)
+
+#DELETAR PRODUTO
 @app.get("/produtos/deletar/{id}")
 async def deletar_produto(id: int):
     conn = get_db()
