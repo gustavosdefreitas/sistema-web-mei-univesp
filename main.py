@@ -230,17 +230,17 @@ async def listar_usuarios(request: Request):
     user = get_current_user(request)
     # Proteção: Se não estiver logado ou não for admin, volta para o dashboard ou login
     if not user: return RedirectResponse(url="/login", status_code=303)
-    if user['perfil'] != 'admin': 
-        return RedirectResponse(url="/", status_code=303) # Ou exibir uma página de erro
     
     conn = get_db()
-    lista_usuarios = conn.execute("SELECT id, username, perfil FROM usuarios").fetchall()
+    # Pega os usuários e converte para uma lista de dicionários real
+    cursor = conn.execute("SELECT id, username, perfil FROM usuarios")
+    lista_limpa = [dict(row) for row in cursor.fetchall()]
     conn.close()
     
     return templates.TemplateResponse("usuarios.html", {
-        "request": request, 
-        "user": user, 
-        "usuarios": lista_usuarios
+    "request": request,
+    "user": dict(user),
+    "usuarios": lista_limpa
     })
 
 @app.post("/usuarios/novo")
@@ -271,6 +271,33 @@ async def deletar_usuario(request: Request, id: int):
         conn.execute("DELETE FROM usuarios WHERE id = ?", (id,))
         conn.commit()
         conn.close()
+    
+    return RedirectResponse(url="/usuarios", status_code=303)
+
+# ROTA PARA EXIBIR O FORMULÁRIO DE EDIÇÃO DE USUÁRIO
+@app.post("/usuarios/editar/{user_id}")
+async def editar_usuario(user_id: int, request: Request, username: str = Form(...), perfil: str = Form(...), password: str = Form(None)):
+    user = get_current_user(request)
+    if not user or user['perfil'] != 'admin':
+        return RedirectResponse(url="/", status_code=303)
+
+    conn = get_db()
+    # Se a senha for fornecida, atualiza ela também
+    if password:
+        conn.execute("""
+            UPDATE usuarios 
+            SET username = ?, perfil = ?, password = ? 
+            WHERE id = ?
+        """, (username, perfil, hash_password(password), user_id))
+    else:
+        conn.execute("""
+            UPDATE usuarios 
+            SET username = ?, perfil = ? 
+            WHERE id = ?
+        """, (username, perfil, user_id))
+    
+    conn.commit()
+    conn.close()
     
     return RedirectResponse(url="/usuarios", status_code=303)
 
