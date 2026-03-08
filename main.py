@@ -116,7 +116,8 @@ async def listar_produtos(request: Request):
     if not user: return RedirectResponse(url="/login", status_code=303)
     
     conn = get_db()
-    # Busca produtos e o nome da empresa correspondente
+    
+    # 1. Busca produtos com os nomes de Empresa e Fornecedor para a TABELA
     produtos = conn.execute("""
         SELECT p.*, e.nome_fantasia AS empresa_nome, f.nome AS fornecedor_nome
         FROM produtos p
@@ -124,33 +125,55 @@ async def listar_produtos(request: Request):
         LEFT JOIN fornecedores f ON p.fornecedor_id = f.id
     """).fetchall()
     
-    # Busca todas as empresas para preencher o campo de seleção no formulário
+    # 2. Busca empresas para o SELECT do Modal
     empresas = conn.execute("SELECT id, nome_fantasia FROM empresas").fetchall()
+    
+    # 3. ADICIONE ESTA LINHA: Busca fornecedores para o SELECT do Modal
+    fornecedores = conn.execute("SELECT id, nome FROM fornecedores").fetchall()
+    
     conn.close()
     
     return templates.TemplateResponse("produtos.html", {
         "request": request, 
         "user": user, 
         "produtos": produtos, 
-        "empresas": empresas
+        "empresas": empresas,
+        "fornecedores": fornecedores  # NÃO ESQUEÇA DE ADICIONAR AQUI TAMBÉM
     })
 
 #NOVO PRODUTO
 @app.post("/produtos/novo")
 async def novo_produto(
     nome: str = Form(...), 
-    quantidade: int = Form(...), 
+    quantidade: float = Form(...), # Mudado para float para aceitar metros/decimais
     preco: float = Form(...), 
-    empresa_id: int = Form(...) # Novo campo vindo do formulário
+    empresa_id: int = Form(...),
+    fornecedor_id: int = Form(...) # Adicionado conforme o novo formulário
 ):
     conn = get_db()
+    # Adicionamos o campo fornecedor_id na query SQL também
     conn.execute("""
-        INSERT INTO produtos (nome, quantidade, preco, empresa_id) 
-        VALUES (?, ?, ?, ?)
-    """, (nome, quantidade, preco, empresa_id))
+        INSERT INTO produtos (nome, quantidade, preco, empresa_id, fornecedor_id) 
+        VALUES (?, ?, ?, ?, ?)
+    """, (nome, quantidade, preco, empresa_id, fornecedor_id))
+    
     conn.commit()
     conn.close()
     return RedirectResponse(url="/produtos", status_code=303)
+
+@app.get("/produtos/novo")
+async def exibir_formulario_cadastro(request: Request):
+    conn = get_db()
+    # Buscamos os dados para preencher os menus de seleção (Dropdowns)
+    empresas = conn.execute("SELECT id, nome_fantasia FROM empresas").fetchall()
+    fornecedores = conn.execute("SELECT id, nome FROM fornecedores").fetchall()
+    conn.close()
+    
+    return templates.TemplateResponse("cadastrar_produto.html", {
+        "request": request,
+        "empresas": empresas,
+        "fornecedores": fornecedores
+    })
 
 #EDITAR PRODUTO
 @app.get("/produtos/editar/{id}", response_class=HTMLResponse)
@@ -172,12 +195,21 @@ async def editar_produto_page(request: Request, id: int):
         "empresas": empresas, "fornecedores": fornecedores
     })
 
-@app.post("/produtos/editar/{id}")
-async def atualizar_produto(id: int, nome: str = Form(...), quantidade: int = Form(...), preco: float = Form(...), empresa_id: int = Form(...), fornecedor_id: int = Form(...)):
-    conn = get_db()
+@app.post("/editar_produto/{id}")
+async def atualizar_produto(
+    id: int,
+    nome: str = Form(...), 
+    quantidade: float = Form(...), # Mudamos de int para float aqui!
+    preco: float = Form(...), 
+    empresa_id: int = Form(...),
+    fornecedor_id: int = Form(...) # Adicionamos o fornecedor
+):
+    conn = get_db() # Usando o seu nome de função correto
     conn.execute("""
-       UPDATE produtos SET nome=?, quantidade=?, preco=?, empresa_id=?, fornecedor_id=?
-        WHERE id=? """, (nome, quantidade, preco, empresa_id, fornecedor_id, id))
+        UPDATE produtos 
+        SET nome = ?, quantidade = ?, preco = ?, empresa_id = ?, fornecedor_id = ? 
+        WHERE id = ?
+    """, (nome, quantidade, preco, empresa_id, fornecedor_id, id))
     conn.commit()
     conn.close()
     return RedirectResponse(url="/produtos", status_code=303)
