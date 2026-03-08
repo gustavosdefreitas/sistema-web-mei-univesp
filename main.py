@@ -285,6 +285,27 @@ async def listar_fornecedores(request: Request):
     conn.close()
     return templates.TemplateResponse("fornecedores.html", {"request": request, "user": user, "fornecedores": fornecedores})
 
+#EDITAR FORNECEDOR
+@app.post("/fornecedores/editar/{id}")
+async def editar_fornecedor(
+    id: int, 
+    nome: str = Form(...), 
+    cnpj: str = Form(None), 
+    telefone: str = Form(None), 
+    email: str = Form(None)
+):
+    conn = get_db()
+    conn.execute("""
+        UPDATE fornecedores 
+        SET nome = ?, cnpj = ?, telefone = ?, email = ? 
+        WHERE id = ?
+    """, (nome, cnpj, telefone, email, id))
+    
+    conn.commit()
+    conn.close()
+    
+    return RedirectResponse(url="/fornecedores", status_code=303)
+
 # ROTA PARA ABRIR A PÁGINA DE VENDAS (O que o botão do menu chama)
 @app.get("/vendas", response_class=HTMLResponse)
 async def pagina_vendas(request: Request):
