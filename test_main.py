@@ -495,3 +495,74 @@ def test_criar_empresa_usuario_nao_admin_bloqueado(override_db):
         "SELECT * FROM empresas WHERE nome_fantasia = 'Empresa X'"
     ).fetchone()
     assert empresa is None
+
+
+# ---------------------------------------------------------------------------
+# Testes de rotas com risco médio sem cobertura anterior
+# ---------------------------------------------------------------------------
+
+def test_deletar_empresa(authenticated_client, override_db):
+    """POST /empresas/deletar/{id} remove a empresa do banco."""
+    response = authenticated_client.post(
+        "/empresas/deletar/1", follow_redirects=False
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/empresas"
+    empresa = override_db.execute(
+        "SELECT * FROM empresas WHERE id = 1"
+    ).fetchone()
+    assert empresa is None
+
+
+def test_deletar_empresa_sem_auth_redireciona(client):
+    """POST /empresas/deletar/{id} sem autenticação redireciona."""
+    response = client.post("/empresas/deletar/1", follow_redirects=False)
+    assert response.status_code == 303
+    assert "/login" in response.headers["location"] or response.headers["location"] == "/"
+
+
+def test_deletar_empresa_usuario_nao_admin_bloqueado(override_db):
+    """Usuário sem perfil admin não pode deletar empresa."""
+    override_db.execute(
+        "INSERT INTO usuarios (username, password, perfil, session_id) VALUES (?, ?, ?, ?)",
+        ("operador3", hash_password("op123"), "operador", "op3-session"),
+    )
+    override_db.commit()
+    op_client = TestClient(app, cookies={"session_id": "op3-session"})
+    op_client.post("/empresas/deletar/1", follow_redirects=False)
+    empresa = override_db.execute(
+        "SELECT * FROM empresas WHERE id = 1"
+    ).fetchone()
+    assert empresa is not None  # não deve ter sido deletada
+
+
+def test_editar_fornecedor(authenticated_client, override_db):
+    """POST /fornecedores/editar/{id} atualiza os dados do fornecedor."""
+    response = authenticated_client.post(
+        "/fornecedores/editar/1",
+        data={
+            "nome": "Fornecedor Atualizado",
+            "cnpj": "99.999.999/0001-99",
+            "telefone": "(11) 11111-1111",
+            "email": "novo@fornecedor.com",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/fornecedores"
+    fornecedor = override_db.execute(
+        "SELECT * FROM fornecedores WHERE id = 1"
+    ).fetchone()
+    assert fornecedor["nome"] == "Fornecedor Atualizado"
+    assert fornecedor["cnpj"] == "99.999.999/0001-99"
+
+
+def test_editar_fornecedor_sem_auth_redireciona(client):
+    """POST /fornecedores/editar/{id} sem autenticação redireciona para /login."""
+    response = client.post(
+        "/fornecedores/editar/1",
+        data={"nome": "X", "cnpj": None, "telefone": None, "email": None},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert "/login" in response.headers["location"]
