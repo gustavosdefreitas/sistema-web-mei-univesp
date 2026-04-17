@@ -49,7 +49,7 @@ def get_current_user(request: Request, conn: sqlite3.Connection = Depends(get_db
 # --- ROTAS DE AUTENTICAÇÃO ---
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html", {})
 
 @app.post("/login")
 async def login(
@@ -75,7 +75,7 @@ async def login(
         )
         return response
 
-    return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciais Inválidas"})
+    return templates.TemplateResponse(request, "login.html", {"error": "Credenciais Inválidas"})
 
 @app.get("/logout")
 async def logout():
@@ -117,8 +117,7 @@ async def dashboard(request: Request, conn: sqlite3.Connection = Depends(get_db)
         ORDER BY v.id DESC LIMIT 5
     """).fetchall()
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard.html", {
         "user": user,
         "total_produtos": total_produtos,
         "total_vendas": total_vendas,
@@ -145,8 +144,7 @@ async def listar_produtos(request: Request, conn: sqlite3.Connection = Depends(g
     empresas = conn.execute("SELECT id, nome_fantasia FROM empresas").fetchall()
     fornecedores = conn.execute("SELECT id, nome FROM fornecedores").fetchall()
 
-    return templates.TemplateResponse("produtos.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "produtos.html", {
         "user": user,
         "produtos": produtos,
         "empresas": empresas,
@@ -174,8 +172,7 @@ async def novo_produto(
 async def exibir_formulario_cadastro(request: Request, conn: sqlite3.Connection = Depends(get_db)):
     empresas = conn.execute("SELECT id, nome_fantasia FROM empresas").fetchall()
     fornecedores = conn.execute("SELECT id, nome FROM fornecedores").fetchall()
-    return templates.TemplateResponse("cadastrar_produto.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "cadastrar_produto.html", {
         "empresas": empresas,
         "fornecedores": fornecedores
     })
@@ -190,8 +187,8 @@ async def editar_produto_page(request: Request, id: int, conn: sqlite3.Connectio
     empresas = conn.execute("SELECT id, nome_fantasia FROM empresas").fetchall()
     fornecedores = conn.execute("SELECT id, nome FROM fornecedores").fetchall()
 
-    return templates.TemplateResponse("editar_produto.html", {
-        "request": request, "user": user, "produto": produto,
+    return templates.TemplateResponse(request, "editar_produto.html", {
+        "user": user, "produto": produto,
         "empresas": empresas, "fornecedores": fornecedores
     })
 
@@ -231,8 +228,7 @@ async def listar_usuarios(request: Request, conn: sqlite3.Connection = Depends(g
     cursor = conn.execute("SELECT id, username, perfil FROM usuarios")
     lista_limpa = [dict(row) for row in cursor.fetchall()]
 
-    return templates.TemplateResponse("usuarios.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "usuarios.html", {
         "user": dict(user),
         "usuarios": lista_limpa
     })
@@ -301,8 +297,8 @@ async def listar_fornecedores(request: Request, conn: sqlite3.Connection = Depen
     if not user: return RedirectResponse(url="/login", status_code=303)
 
     fornecedores = conn.execute("SELECT * FROM fornecedores").fetchall()
-    return templates.TemplateResponse("fornecedores.html", {
-        "request": request, "user": user, "fornecedores": fornecedores
+    return templates.TemplateResponse(request, "fornecedores.html", {
+        "user": user, "fornecedores": fornecedores
     })
 
 @app.post("/fornecedores/editar/{id}")
@@ -336,8 +332,7 @@ async def pagina_vendas(request: Request, conn: sqlite3.Connection = Depends(get
         ORDER BY v.data DESC
     """).fetchall()
 
-    return templates.TemplateResponse("vendas.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "vendas.html", {
         "user": user,
         "produtos": produtos,
         "vendas": vendas
@@ -370,8 +365,8 @@ async def listar_empresas(request: Request, conn: sqlite3.Connection = Depends(g
         return RedirectResponse(url="/", status_code=303)
 
     empresas = conn.execute("SELECT * FROM empresas ORDER BY nome_fantasia").fetchall()
-    return templates.TemplateResponse("empresas.html", {
-        "request": request, "user": user, "empresas": empresas
+    return templates.TemplateResponse(request, "empresas.html", {
+        "user": user, "empresas": empresas
     })
 
 @app.post("/empresas/nova")
@@ -408,8 +403,8 @@ async def editar_empresa_page(request: Request, id: int, conn: sqlite3.Connectio
     if not empresa:
         return RedirectResponse(url="/empresas", status_code=303)
 
-    return templates.TemplateResponse("editar_empresa.html", {
-        "request": request, "user": user, "empresa": empresa
+    return templates.TemplateResponse(request, "editar_empresa.html", {
+        "user": user, "empresa": empresa
     })
 
 @app.post("/empresas/editar/{id}")
