@@ -9,8 +9,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# --- CONFIGURAÇÕES ---
+# Banco de dados: por padrão usa SQLite local. Em produção pode ser trocado
+# para qualquer caminho ou URL compatível com sqlite3, apenas definindo
+# DATABASE_URL no .env ou nas variáveis de ambiente da plataforma.
+DATABASE_URL = os.environ.get("DATABASE_URL", "estoque.db")
+
 # Em produção (ENVIRONMENT=production), o cookie só é enviado em HTTPS.
-# Em desenvolvimento local, SECURE_COOKIE=false para funcionar sem TLS.
 SECURE_COOKIE = os.environ.get("ENVIRONMENT", "development") == "production"
 
 app = FastAPI()
@@ -23,7 +28,7 @@ def get_db():
     Garante que a conexão é sempre fechada ao final da requisição,
     mesmo que ocorra uma exceção durante o processamento.
     """
-    conn = sqlite3.connect('estoque.db')
+    conn = sqlite3.connect(DATABASE_URL)
     conn.row_factory = sqlite3.Row
     try:
         yield conn

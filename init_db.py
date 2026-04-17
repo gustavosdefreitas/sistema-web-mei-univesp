@@ -1,6 +1,11 @@
 import sqlite3
+import os
+from dotenv import load_dotenv
 
-conn = sqlite3.connect('estoque.db')
+load_dotenv()
+DATABASE_URL = os.environ.get('DATABASE_URL', 'estoque.db')
+
+conn = sqlite3.connect(DATABASE_URL)
 cursor = conn.cursor()
 
 cursor.execute('''
