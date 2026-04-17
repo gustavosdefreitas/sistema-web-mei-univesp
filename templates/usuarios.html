@@ -42,10 +42,11 @@
                                 </button>
                                 
                                 {% if u.username != user.username %}
-                                <a href="/usuarios/deletar/{{ u.id }}" 
-				   class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir este usuário?')">
-                                    <i class="fas fa-trash"></i> 
-                                </a>
+                                <form method="POST" action="/usuarios/deletar/{{ u.id }}" style="display:inline" onsubmit="return confirm('Excluir este usuário?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                                 {% endif %}
                             </div>
                         </td>

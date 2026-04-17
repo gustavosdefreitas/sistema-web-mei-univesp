@@ -215,8 +215,10 @@ async def atualizar_produto(
     return RedirectResponse(url="/produtos", status_code=303)
 
 #DELETAR PRODUTO
-@app.get("/produtos/deletar/{id}")
-async def deletar_produto(id: int):
+@app.post("/produtos/deletar/{id}")
+async def deletar_produto(request: Request, id: int):
+    user = get_current_user(request)
+    if not user: return RedirectResponse(url="/login", status_code=303)
     conn = get_db()
     conn.execute("DELETE FROM produtos WHERE id = ?", (id,))
     conn.commit()
@@ -262,7 +264,7 @@ async def novo_usuario(request: Request, username: str = Form(...), password: st
     
     return RedirectResponse(url="/usuarios", status_code=303)
 
-@app.get("/usuarios/deletar/{id}")
+@app.post("/usuarios/deletar/{id}")
 async def deletar_usuario(request: Request, id: int):
     user = get_current_user(request)
     # Impede que um admin se apague a si próprio (importante!)
@@ -405,8 +407,10 @@ async def nova_empresa(
     conn.close()
     return RedirectResponse(url="/empresas", status_code=303)
 
-@app.get("/empresas/deletar/{id}")
-async def deletar_empresa(id: int):
+@app.post("/empresas/deletar/{id}")
+async def deletar_empresa(request: Request, id: int):
+    user = get_current_user(request)
+    if not user or user['perfil'] != 'admin': return RedirectResponse(url="/", status_code=303)
     conn = get_db()
     conn.execute("DELETE FROM empresas WHERE id = ?", (id,))
     conn.commit()
