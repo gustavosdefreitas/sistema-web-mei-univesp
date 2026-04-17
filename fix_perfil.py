@@ -17,4 +17,4 @@ conn.close()
 
 print('🎉 USUÁRIO admin = ADMIN!')
 print('👤 Login: admin')
-print('🔑 Senha: 123456')
+print('ℹ️  Para redefinir a senha do admin, execute reset_sistema.py com ADMIN_PASSWORD definida no .env')
