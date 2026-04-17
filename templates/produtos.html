@@ -24,7 +24,9 @@
                     <td>R$ {{ "%.2f"|format(p.preco) }}</td>
                     <td>
                         <a href="/produtos/editar/{{ p.id }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
-                        <a href="/produtos/deletar/{{ p.id }}" class="btn btn-outline-danger btn-sm">🗑️</a>
+                        <form method="POST" action="/produtos/deletar/{{ p.id }}" style="display:inline" onsubmit="return confirm('Excluir este produto?')">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">🗑️</button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}
