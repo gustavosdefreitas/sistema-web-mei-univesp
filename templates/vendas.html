@@ -10,23 +10,37 @@
                 <h5 class="mb-0 fw-bold"><i class="fas fa-cart-plus me-2"></i>Registrar Venda</h5>
             </div>
             <div class="card-body">
+                {% if erro_venda %}
+                <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span>{{ erro_venda }}</span>
+                </div>
+                {% endif %}
+
                 <form action="/vendas/nova" method="POST">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Selecionar Produto</label>
-                        <select name="produto_id" class="form-select" required>
-                            <option value="" selected disabled>Escolha um produto...</option>
+                        <select name="produto_id" class="form-select {% if erro_venda %}is-invalid{% endif %}" required>
+                            <option value="" disabled {% if not produto_id_selecionado %}selected{% endif %}>Escolha um produto...</option>
                             {% for p in produtos %}
                                 {% if p.quantidade > 0 %}
-                                <option value="{{ p.id }}">{{ p.nome }} (Disponível: {{ p.quantidade }})</option>
+                                <option value="{{ p.id }}" {% if p.id == produto_id_selecionado %}selected{% endif %}>
+                                    {{ p.nome }} (Disponível: {{ p.quantidade }})
+                                </option>
                                 {% endif %}
                             {% endfor %}
                         </select>
-                        <div class="form-text">Apenas produtos com stock aparecem aqui.</div>
+                        <div class="form-text">Apenas produtos com estoque aparecem aqui.</div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Quantidade a Vender</label>
-                        <input type="number" name="qtd_venda" class="form-control" min="1" value="1" required>
+                        <input type="number" name="qtd_venda"
+                               class="form-control {% if erro_venda %}is-invalid{% endif %}"
+                               min="1" value="{{ qtd_venda if qtd_venda else 1 }}" required>
+                        {% if erro_venda %}
+                        <div class="invalid-feedback">{{ erro_venda }}</div>
+                        {% endif %}
                     </div>
 
                     <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm">
