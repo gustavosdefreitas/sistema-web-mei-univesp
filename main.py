@@ -28,7 +28,7 @@ def get_db():
     Garante que a conexão é sempre fechada ao final da requisição,
     mesmo que ocorra uma exceção durante o processamento.
     """
-    conn = sqlite3.connect(DATABASE_URL)
+    conn = sqlite3.connect(DATABASE_URL, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     try:
         yield conn
@@ -43,8 +43,9 @@ def verify_password(plain: str, hashed: str) -> bool:
     """Verifica senha contra hash bcrypt armazenado."""
     return bcrypt.checkpw(plain.encode(), hashed.encode())
 
-# Auxiliar para verificar login em todas as rotas
-def get_current_user(request: Request, conn: sqlite3.Connection = Depends(get_db)):
+# Auxiliar para verificar login em todas as rotas.
+# Recebe a conexão já aberta pela rota via Depends(get_db) — não abre uma conexão própria.
+def get_current_user(request: Request, conn: sqlite3.Connection) -> sqlite3.Row | None:
     session_id = request.cookies.get("session_id")
     if not session_id:
         return None
