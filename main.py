@@ -83,7 +83,11 @@ async def login(
     return templates.TemplateResponse(request, "login.html", {"error": "Credenciais Inválidas"})
 
 @app.get("/logout")
-async def logout():
+async def logout(request: Request, conn: sqlite3.Connection = Depends(get_db)):
+    session_id = request.cookies.get("session_id")
+    if session_id:
+        conn.execute("UPDATE usuarios SET session_id = NULL WHERE session_id = ?", (session_id,))
+        conn.commit()
     response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie("session_id")
     return response
@@ -175,9 +179,13 @@ async def novo_produto(
 
 @app.get("/produtos/novo")
 async def exibir_formulario_cadastro(request: Request, conn: sqlite3.Connection = Depends(get_db)):
+    user = get_current_user(request, conn)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
     empresas = conn.execute("SELECT id, nome_fantasia FROM empresas").fetchall()
     fornecedores = conn.execute("SELECT id, nome FROM fornecedores").fetchall()
     return templates.TemplateResponse(request, "cadastrar_produto.html", {
+        "user": user,
         "empresas": empresas,
         "fornecedores": fornecedores
     })
@@ -273,6 +281,18 @@ async def deletar_usuario(request: Request, id: int, conn: sqlite3.Connection = 
         conn.commit()
     return RedirectResponse(url="/usuarios", status_code=303)
 
+@app.get("/usuarios/editar/{user_id}", response_class=HTMLResponse)
+async def editar_usuario_page(request: Request, user_id: int, conn: sqlite3.Connection = Depends(get_db)):
+    user = get_current_user(request, conn)
+    if not user or user['perfil'] != 'admin':
+        return RedirectResponse(url="/", status_code=303)
+    usuario = conn.execute("SELECT id, username, perfil FROM usuarios WHERE id = ?", (user_id,)).fetchone()
+    if not usuario:
+        return RedirectResponse(url="/usuarios", status_code=303)
+    return templates.TemplateResponse(request, "editar_usuario.html", {
+        "user": user, "usuario": dict(usuario)
+    })
+
 @app.post("/usuarios/editar/{user_id}")
 async def editar_usuario(
     user_id: int,
@@ -310,8 +330,41 @@ async def listar_fornecedores(request: Request, conn: sqlite3.Connection = Depen
         "user": user, "fornecedores": fornecedores
     })
 
+@app.post("/fornecedores/novo")
+async def novo_fornecedor(
+    request: Request,
+    nome: str = Form(...),
+    cnpj: str = Form(None),
+    telefone: str = Form(None),
+    email: str = Form(None),
+    conn: sqlite3.Connection = Depends(get_db)
+):
+    user = get_current_user(request, conn)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    conn.execute(
+        "INSERT INTO fornecedores (nome, cnpj, telefone, email) VALUES (?, ?, ?, ?)",
+        (nome, cnpj, telefone, email)
+    )
+    conn.commit()
+    return RedirectResponse(url="/fornecedores", status_code=303)
+
+@app.post("/fornecedores/deletar/{id}")
+async def deletar_fornecedor(
+    request: Request,
+    id: int,
+    conn: sqlite3.Connection = Depends(get_db)
+):
+    user = get_current_user(request, conn)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    conn.execute("DELETE FROM fornecedores WHERE id = ?", (id,))
+    conn.commit()
+    return RedirectResponse(url="/fornecedores", status_code=303)
+
 @app.post("/fornecedores/editar/{id}")
 async def editar_fornecedor(
+    request: Request,
     id: int,
     nome: str = Form(...),
     cnpj: str = Form(None),
@@ -319,6 +372,9 @@ async def editar_fornecedor(
     email: str = Form(None),
     conn: sqlite3.Connection = Depends(get_db)
 ):
+    user = get_current_user(request, conn)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
     conn.execute("""
         UPDATE fornecedores 
         SET nome = ?, cnpj = ?, telefone = ?, email = ? 

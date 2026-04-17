@@ -376,3 +376,64 @@ def test_usuario_nao_admin_nao_cria_usuario(override_db):
         "SELECT * FROM usuarios WHERE username = 'hacker'"
     ).fetchone()
     assert user is None
+
+
+# ---------------------------------------------------------------------------
+# Testes dos bugs críticos corrigidos (#26, #27, #28, #29)
+# ---------------------------------------------------------------------------
+
+def test_logout_invalida_sessao_no_banco(authenticated_client, override_db):
+    """Logout deve limpar session_id no banco, não apenas o cookie. (bug #26)"""
+    # Confirma que há sessão ativa antes do logout
+    usuario = override_db.execute(
+        "SELECT session_id FROM usuarios WHERE username = 'admin'"
+    ).fetchone()
+    assert usuario["session_id"] is not None
+
+    authenticated_client.get("/logout", follow_redirects=False)
+
+    # Após logout, session_id deve ser NULL no banco
+    usuario = override_db.execute(
+        "SELECT session_id FROM usuarios WHERE username = 'admin'"
+    ).fetchone()
+    assert usuario["session_id"] is None
+
+
+def test_pagina_cadastrar_produto_existe(authenticated_client):
+    """GET /produtos/novo deve retornar 200 (template cadastrar_produto.html existe). (bug #27)"""
+    response = authenticated_client.get("/produtos/novo")
+    assert response.status_code == 200
+    assert "Cadastrar Produto" in response.text
+
+
+def test_editar_usuario_page_existe(authenticated_client, override_db):
+    """GET /usuarios/editar/{id} deve retornar 200 com formulário preenchido. (bug #28)"""
+    response = authenticated_client.get("/usuarios/editar/1")
+    assert response.status_code == 200
+    assert "admin" in response.text
+
+
+def test_criar_fornecedor(authenticated_client, override_db):
+    """POST /fornecedores/novo deve inserir fornecedor no banco. (bug #29)"""
+    response = authenticated_client.post(
+        "/fornecedores/novo",
+        data={"nome": "Novo Fornecedor XYZ", "cnpj": "22.222.222/0001-22",
+              "telefone": "(11) 99999-9999", "email": "xyz@fornecedor.com"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    fornecedor = override_db.execute(
+        "SELECT * FROM fornecedores WHERE nome = 'Novo Fornecedor XYZ'"
+    ).fetchone()
+    assert fornecedor is not None
+    assert fornecedor["cnpj"] == "22.222.222/0001-22"
+
+
+def test_deletar_fornecedor(authenticated_client, override_db):
+    """POST /fornecedores/deletar/{id} deve remover fornecedor do banco. (bug #29)"""
+    response = authenticated_client.post("/fornecedores/deletar/1", follow_redirects=False)
+    assert response.status_code == 303
+    fornecedor = override_db.execute(
+        "SELECT * FROM fornecedores WHERE id = 1"
+    ).fetchone()
+    assert fornecedor is None
