@@ -345,20 +345,51 @@ async def pagina_vendas(request: Request, conn: sqlite3.Connection = Depends(get
 
 @app.post("/vendas/nova")
 async def registrar_venda(
+    request: Request,
     produto_id: int = Form(...),
     qtd_venda: int = Form(...),
     conn: sqlite3.Connection = Depends(get_db)
 ):
-    prod = conn.execute("SELECT quantidade, preco FROM produtos WHERE id = ?", (produto_id,)).fetchone()
+    user = get_current_user(request, conn)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
 
-    if prod and prod['quantidade'] >= qtd_venda:
-        total = qtd_venda * prod['preco']
-        conn.execute(
-            "INSERT INTO vendas (produto_id, quantidade, preco_unitario, total) VALUES (?, ?, ?, ?)",
-            (produto_id, qtd_venda, prod['preco'], total)
-        )
-        conn.execute("UPDATE produtos SET quantidade = quantidade - ? WHERE id = ?", (qtd_venda, produto_id))
-        conn.commit()
+    erro = None
+
+    if qtd_venda <= 0:
+        erro = "A quantidade deve ser maior que zero."
+    else:
+        prod = conn.execute("SELECT quantidade, preco FROM produtos WHERE id = ?", (produto_id,)).fetchone()
+
+        if not prod:
+            erro = "Produto não encontrado."
+        elif qtd_venda > prod['quantidade']:
+            erro = f"Estoque insuficiente. Disponível: {prod['quantidade']} unidade(s)."
+        else:
+            total = qtd_venda * prod['preco']
+            conn.execute(
+                "INSERT INTO vendas (produto_id, quantidade, preco_unitario, total) VALUES (?, ?, ?, ?)",
+                (produto_id, qtd_venda, prod['preco'], total)
+            )
+            conn.execute("UPDATE produtos SET quantidade = quantidade - ? WHERE id = ?", (qtd_venda, produto_id))
+            conn.commit()
+
+    if erro:
+        produtos = conn.execute("SELECT * FROM produtos WHERE quantidade > 0").fetchall()
+        vendas = conn.execute("""
+            SELECT v.*, p.nome
+            FROM vendas v
+            JOIN produtos p ON v.produto_id = p.id
+            ORDER BY v.data DESC
+        """).fetchall()
+        return templates.TemplateResponse(request, "vendas.html", {
+            "user": user,
+            "produtos": produtos,
+            "vendas": vendas,
+            "erro_venda": erro,
+            "produto_id_selecionado": produto_id,
+            "qtd_venda": qtd_venda,
+        })
 
     return RedirectResponse(url="/vendas", status_code=303)
 

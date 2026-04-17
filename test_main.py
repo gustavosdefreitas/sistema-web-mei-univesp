@@ -242,8 +242,8 @@ def test_registrar_venda_reduz_estoque(authenticated_client, override_db):
 
 
 def test_venda_sem_estoque_suficiente_nao_processa(authenticated_client, override_db):
-    """Venda maior que o estoque disponível não é registrada."""
-    authenticated_client.post(
+    """Venda maior que o estoque disponível não é registrada e exibe erro."""
+    response = authenticated_client.post(
         "/vendas/nova",
         data={"produto_id": "1", "qtd_venda": "999"},
         follow_redirects=False,
@@ -252,6 +252,39 @@ def test_venda_sem_estoque_suficiente_nao_processa(authenticated_client, overrid
         "SELECT quantidade FROM produtos WHERE id = 1"
     ).fetchone()["quantidade"]
     assert estoque == 10  # estoque não deve ter mudado
+    # Deve renderizar a página com mensagem de erro (não redirecionar)
+    assert response.status_code == 200
+    assert "Estoque insuficiente" in response.text
+
+
+def test_venda_quantidade_zero_rejeitada(authenticated_client, override_db):
+    """Quantidade zero é rejeitada com mensagem de erro."""
+    response = authenticated_client.post(
+        "/vendas/nova",
+        data={"produto_id": "1", "qtd_venda": "0"},
+        follow_redirects=False,
+    )
+    estoque = override_db.execute(
+        "SELECT quantidade FROM produtos WHERE id = 1"
+    ).fetchone()["quantidade"]
+    assert estoque == 10  # nenhuma alteração no estoque
+    assert response.status_code == 200
+    assert "maior que zero" in response.text
+
+
+def test_venda_quantidade_negativa_rejeitada(authenticated_client, override_db):
+    """Quantidade negativa é rejeitada com mensagem de erro."""
+    response = authenticated_client.post(
+        "/vendas/nova",
+        data={"produto_id": "1", "qtd_venda": "-5"},
+        follow_redirects=False,
+    )
+    estoque = override_db.execute(
+        "SELECT quantidade FROM produtos WHERE id = 1"
+    ).fetchone()["quantidade"]
+    assert estoque == 10
+    assert response.status_code == 200
+    assert "maior que zero" in response.text
 
 
 # ---------------------------------------------------------------------------
