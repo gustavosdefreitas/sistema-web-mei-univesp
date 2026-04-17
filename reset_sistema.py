@@ -1,5 +1,17 @@
 import sqlite3
 import hashlib
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Lê a senha do admin da variável de ambiente ADMIN_PASSWORD
+# Defina no arquivo .env antes de executar: ADMIN_PASSWORD=sua_senha_segura
+senha_admin = os.environ.get('ADMIN_PASSWORD')
+if not senha_admin:
+    print('❌ Erro: variável de ambiente ADMIN_PASSWORD não definida.')
+    print('   Crie um arquivo .env com: ADMIN_PASSWORD=sua_senha_segura')
+    exit(1)
 
 # APAGA TUDO e recria BANCO LIMPO
 conn = sqlite3.connect('estoque.db')
@@ -32,9 +44,8 @@ c.execute('''CREATE TABLE vendas (
     total REAL
 )''')
 
-# ADMIN com SENHA 123456 (hash correto)
-hash_admin = hashlib.sha256('123456'.encode()).hexdigest()
-c.execute('INSERT INTO usuarios (username, password, perfil) VALUES (?, ?, ?)', 
+hash_admin = hashlib.sha256(senha_admin.encode()).hexdigest()
+c.execute('INSERT INTO usuarios (username, password, perfil) VALUES (?, ?, ?)',
           ('admin', hash_admin, 'admin'))
 
 # PRODUTOS DE TESTE
@@ -48,5 +59,5 @@ conn.commit()
 conn.close()
 print('✅ SISTEMA RECRIADO!')
 print('👤 Login: admin')
-print('🔑 Senha: 123456')
+print('🔑 Senha definida via ADMIN_PASSWORD')
 print('🎉 http://localhost:8000')
