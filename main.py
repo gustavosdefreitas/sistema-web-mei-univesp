@@ -2,8 +2,8 @@ from fastapi import FastAPI, Form, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import sqlite3
-import hashlib
 import uuid
+from passlib.context import CryptContext
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -14,8 +14,15 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    """Gera hash bcrypt com salt automático."""
+    return pwd_context.hash(password)
+
+def verify_password(plain: str, hashed: str) -> bool:
+    """Verifica senha contra hash bcrypt armazenado."""
+    return pwd_context.verify(plain, hashed)
 
 # Auxiliar para verificar login em todas as rotas
 def get_current_user(request: Request):
@@ -38,7 +45,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
     user = conn.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
     conn.close()
 
-    if user and user['password'] == hash_password(password):
+    if user and verify_password(password, user['password']):
         session_id = str(uuid.uuid4())
         conn = get_db()
         conn.execute("UPDATE usuarios SET session_id = ? WHERE id = ?", (session_id, user['id']))
