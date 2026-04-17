@@ -1,7 +1,7 @@
 import sqlite3
-import hashlib
 import os
 from dotenv import load_dotenv
+from passlib.context import CryptContext
 
 load_dotenv()
 
@@ -44,7 +44,8 @@ c.execute('''CREATE TABLE vendas (
     total REAL
 )''')
 
-hash_admin = hashlib.sha256(senha_admin.encode()).hexdigest()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+hash_admin = pwd_context.hash(senha_admin)
 c.execute('INSERT INTO usuarios (username, password, perfil) VALUES (?, ?, ?)',
           ('admin', hash_admin, 'admin'))
 
