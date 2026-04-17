@@ -218,6 +218,36 @@ def test_deletar_produto(authenticated_client, override_db):
     assert produto is None
 
 
+def test_editar_produto_rota_correta(authenticated_client, override_db):
+    """POST /produtos/editar/{id} atualiza o produto e redireciona."""
+    response = authenticated_client.post(
+        "/produtos/editar/1",
+        data={
+            "nome": "Produto Editado",
+            "quantidade": "99",
+            "preco": "7.50",
+            "empresa_id": "1",
+            "fornecedor_id": "1",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/produtos"
+    produto = override_db.execute("SELECT nome, quantidade FROM produtos WHERE id = 1").fetchone()
+    assert produto["nome"] == "Produto Editado"
+    assert produto["quantidade"] == 99
+
+
+def test_editar_produto_rota_antiga_nao_existe(authenticated_client):
+    """A rota antiga POST /editar_produto/{id} não deve mais existir (404)."""
+    response = authenticated_client.post(
+        "/editar_produto/1",
+        data={"nome": "X", "quantidade": "1", "preco": "1", "empresa_id": "1", "fornecedor_id": "1"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 404  # rota removida — não existe mais
+
+
 # ---------------------------------------------------------------------------
 # Testes de CRUD — Vendas
 # ---------------------------------------------------------------------------

@@ -197,8 +197,9 @@ async def editar_produto_page(request: Request, id: int, conn: sqlite3.Connectio
         "empresas": empresas, "fornecedores": fornecedores
     })
 
-@app.post("/editar_produto/{id}")
+@app.post("/produtos/editar/{id}")
 async def atualizar_produto(
+    request: Request,
     id: int,
     nome: str = Form(...),
     quantidade: float = Form(...),
@@ -207,6 +208,9 @@ async def atualizar_produto(
     fornecedor_id: int = Form(...),
     conn: sqlite3.Connection = Depends(get_db)
 ):
+    user = get_current_user(request, conn)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
     conn.execute("""
         UPDATE produtos 
         SET nome = ?, quantidade = ?, preco = ?, empresa_id = ?, fornecedor_id = ? 
