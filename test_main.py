@@ -437,3 +437,61 @@ def test_deletar_fornecedor(authenticated_client, override_db):
         "SELECT * FROM fornecedores WHERE id = 1"
     ).fetchone()
     assert fornecedor is None
+
+
+# ---------------------------------------------------------------------------
+# Testes de autenticação nas rotas que não tinham proteção
+# ---------------------------------------------------------------------------
+
+def test_criar_produto_sem_auth_redireciona(client):
+    """POST /produtos/novo sem autenticação deve redirecionar para /login."""
+    response = client.post(
+        "/produtos/novo",
+        data={"nome": "X", "quantidade": "1", "preco": "1.0",
+              "empresa_id": "1", "fornecedor_id": "1"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert "/login" in response.headers["location"]
+
+
+def test_criar_empresa_sem_auth_redireciona(client):
+    """POST /empresas/nova sem autenticação deve redirecionar."""
+    response = client.post(
+        "/empresas/nova",
+        data={"nome": "X", "razao_social": "X", "cnpj": "0",
+              "tel": "0", "email": "x@x.com"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+
+def test_editar_empresa_sem_auth_redireciona(client):
+    """POST /empresas/editar/{id} sem autenticação deve redirecionar."""
+    response = client.post(
+        "/empresas/editar/1",
+        data={"nome": "X", "cnpj": "0", "tel": "0", "email": "x@x.com"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+
+def test_criar_empresa_usuario_nao_admin_bloqueado(override_db):
+    """Usuário sem perfil admin não pode criar empresa."""
+    override_db.execute(
+        "INSERT INTO usuarios (username, password, perfil, session_id) VALUES (?, ?, ?, ?)",
+        ("operador2", hash_password("op123"), "operador", "op2-session"),
+    )
+    override_db.commit()
+    op_client = TestClient(app, cookies={"session_id": "op2-session"})
+    response = op_client.post(
+        "/empresas/nova",
+        data={"nome": "Empresa X", "razao_social": "X", "cnpj": "0",
+              "tel": "0", "email": "x@x.com"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    empresa = override_db.execute(
+        "SELECT * FROM empresas WHERE nome_fantasia = 'Empresa X'"
+    ).fetchone()
+    assert empresa is None

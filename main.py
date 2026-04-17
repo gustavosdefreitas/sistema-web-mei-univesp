@@ -163,6 +163,7 @@ async def listar_produtos(request: Request, conn: sqlite3.Connection = Depends(g
 # NOVO PRODUTO
 @app.post("/produtos/novo")
 async def novo_produto(
+    request: Request,
     nome: str = Form(...),
     quantidade: float = Form(...),
     preco: float = Form(...),
@@ -170,6 +171,9 @@ async def novo_produto(
     fornecedor_id: int = Form(...),
     conn: sqlite3.Connection = Depends(get_db)
 ):
+    user = get_current_user(request, conn)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
     conn.execute("""
         INSERT INTO produtos (nome, quantidade, preco, empresa_id, fornecedor_id) 
         VALUES (?, ?, ?, ?, ?)
@@ -467,6 +471,7 @@ async def listar_empresas(request: Request, conn: sqlite3.Connection = Depends(g
 
 @app.post("/empresas/nova")
 async def nova_empresa(
+    request: Request,
     nome: str = Form(...),
     razao_social: str = Form(...),
     cnpj: str = Form(...),
@@ -474,6 +479,9 @@ async def nova_empresa(
     email: str = Form(...),
     conn: sqlite3.Connection = Depends(get_db)
 ):
+    user = get_current_user(request, conn)
+    if not user or user['perfil'] != 'admin':
+        return RedirectResponse(url="/", status_code=303)
     conn.execute("""
         INSERT INTO empresas (nome_fantasia, razao_social, cnpj, telefone, email) 
         VALUES (?, ?, ?, ?, ?)
@@ -505,6 +513,7 @@ async def editar_empresa_page(request: Request, id: int, conn: sqlite3.Connectio
 
 @app.post("/empresas/editar/{id}")
 async def atualizar_empresa(
+    request: Request,
     id: int,
     nome: str = Form(...),
     cnpj: str = Form(...),
@@ -512,6 +521,9 @@ async def atualizar_empresa(
     email: str = Form(...),
     conn: sqlite3.Connection = Depends(get_db)
 ):
+    user = get_current_user(request, conn)
+    if not user or user['perfil'] != 'admin':
+        return RedirectResponse(url="/", status_code=303)
     conn.execute("""
         UPDATE empresas 
         SET nome_fantasia = ?, cnpj = ?, telefone = ?, email = ? 
