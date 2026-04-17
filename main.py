@@ -3,7 +3,15 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import sqlite3
 import uuid
-from passlib.context import CryptContext
+import os
+import bcrypt
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Em produção (ENVIRONMENT=production), o cookie só é enviado em HTTPS.
+# Em desenvolvimento local, SECURE_COOKIE=false para funcionar sem TLS.
+SECURE_COOKIE = os.environ.get("ENVIRONMENT", "development") == "production"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -22,15 +30,13 @@ def get_db():
     finally:
         conn.close()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def hash_password(password: str) -> str:
-    """Gera hash bcrypt com salt automático."""
-    return pwd_context.hash(password)
+    """Gera hash bcrypt com salt automático. Retorna string UTF-8."""
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 def verify_password(plain: str, hashed: str) -> bool:
     """Verifica senha contra hash bcrypt armazenado."""
-    return pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 # Auxiliar para verificar login em todas as rotas
 def get_current_user(request: Request, conn: sqlite3.Connection = Depends(get_db)):
@@ -60,7 +66,13 @@ async def login(
         conn.commit()
 
         response = RedirectResponse(url="/", status_code=303)
-        response.set_cookie(key="session_id", value=session_id, httponly=True)
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,       # impede acesso via JavaScript
+            samesite="lax",      # proteção contra CSRF
+            secure=SECURE_COOKIE # True em produção (HTTPS), False em dev
+        )
         return response
 
     return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciais Inválidas"})
