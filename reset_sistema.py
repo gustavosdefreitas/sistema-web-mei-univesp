@@ -5,6 +5,8 @@ from passlib.context import CryptContext
 
 load_dotenv()
 
+DATABASE_URL = os.environ.get('DATABASE_URL', 'estoque.db')
+
 # Lê a senha do admin da variável de ambiente ADMIN_PASSWORD
 # Defina no arquivo .env antes de executar: ADMIN_PASSWORD=sua_senha_segura
 senha_admin = os.environ.get('ADMIN_PASSWORD')
@@ -14,7 +16,7 @@ if not senha_admin:
     exit(1)
 
 # APAGA TUDO e recria BANCO LIMPO
-conn = sqlite3.connect('estoque.db')
+conn = sqlite3.connect(DATABASE_URL)
 c = conn.cursor()
 c.execute('DROP TABLE IF EXISTS usuarios')
 c.execute('DROP TABLE IF EXISTS produtos')

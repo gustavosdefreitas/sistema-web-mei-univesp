@@ -1,7 +1,12 @@
 # fix_db.py
 import sqlite3
+import os
+from dotenv import load_dotenv
 
-conn = sqlite3.connect('estoque.db')
+load_dotenv()
+DATABASE_URL = os.environ.get('DATABASE_URL', 'estoque.db')
+
+conn = sqlite3.connect(DATABASE_URL)
 c = conn.cursor()
 
 # Cria coluna perfil se não existir
