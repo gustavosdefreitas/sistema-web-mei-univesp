@@ -50,6 +50,35 @@
     </nav>
 
     <div class="container pb-5">
+
+        {# ── Flash message ── lida do cookie via JS e exibida como alerta Bootstrap #}
+        <div id="flash-container" class="mt-2"></div>
+        <script>
+        (function(){
+            function getCookie(name){
+                const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+                return match ? decodeURIComponent(match[1]) : null;
+            }
+            const raw = getCookie('flash');
+            if(raw){
+                try{
+                    const f = JSON.parse(raw);
+                    const map = {success:'success', warning:'warning', danger:'danger', info:'info'};
+                    const cls = map[f.cat] || 'success';
+                    const icon = {success:'check-circle', warning:'exclamation-triangle',
+                                  danger:'times-circle', info:'info-circle'}[cls] || 'check-circle';
+                    document.getElementById('flash-container').innerHTML =
+                        `<div class="alert alert-${cls} alert-dismissible fade show d-flex align-items-center" role="alert">
+                            <i class="fas fa-${icon} me-2"></i><span>${f.msg}</span>
+                            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                         </div>`;
+                    // apaga o cookie imediatamente após exibir
+                    document.cookie = 'flash=; Max-Age=0; path=/';
+                } catch(e){}
+            }
+        })();
+        </script>
+
         {% block content %}{% endblock %}
     </div>
 

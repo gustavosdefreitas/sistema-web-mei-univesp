@@ -35,6 +35,25 @@ def format_datetime(value: str) -> str:
 
 templates.env.filters["databr"] = format_datetime
 
+# --- FLASH MESSAGES ---
+# Armazena uma mensagem temporária num cookie; o template a lê e exibe.
+def set_flash(response, message: str, category: str = "success"):
+    """Grava mensagem flash no cookie (lida e apagada pelo base.html)."""
+    import json
+    response.set_cookie("flash", json.dumps({"msg": message, "cat": category}),
+                        httponly=False, samesite="lax", max_age=10)
+
+def get_flash(request: Request) -> dict | None:
+    """Lê e retorna a mensagem flash do cookie (se existir)."""
+    import json
+    raw = request.cookies.get("flash")
+    if raw:
+        try:
+            return json.loads(raw)
+        except Exception:
+            return None
+    return None
+
 # --- BANCO DE DADOS ---
 def get_db():
     """
@@ -196,7 +215,9 @@ async def novo_produto(
         VALUES (?, ?, ?, ?, ?)
     """, (nome, quantidade, preco, empresa_id, fornecedor_id))
     conn.commit()
-    return RedirectResponse(url="/produtos", status_code=303)
+    resp = RedirectResponse(url="/produtos", status_code=303)
+    set_flash(resp, "Produto cadastrado com sucesso!")
+    return resp
 
 @app.get("/produtos/novo")
 async def exibir_formulario_cadastro(request: Request, conn: sqlite3.Connection = Depends(get_db)):
@@ -246,7 +267,9 @@ async def atualizar_produto(
         WHERE id = ?
     """, (nome, quantidade, preco, empresa_id, fornecedor_id, id))
     conn.commit()
-    return RedirectResponse(url="/produtos", status_code=303)
+    resp = RedirectResponse(url="/produtos", status_code=303)
+    set_flash(resp, "Produto atualizado com sucesso!")
+    return resp
 
 # DELETAR PRODUTO
 @app.post("/produtos/deletar/{id}")
@@ -255,7 +278,9 @@ async def deletar_produto(request: Request, id: int, conn: sqlite3.Connection = 
     if not user: return RedirectResponse(url="/login", status_code=303)
     conn.execute("DELETE FROM produtos WHERE id = ?", (id,))
     conn.commit()
-    return RedirectResponse(url="/produtos", status_code=303)
+    resp = RedirectResponse(url="/produtos", status_code=303)
+    set_flash(resp, "Produto excluído.", "warning")
+    return resp
 
 # --- GESTÃO DE USUÁRIOS ---
 @app.get("/usuarios", response_class=HTMLResponse)
@@ -368,7 +393,9 @@ async def novo_fornecedor(
         (nome, cnpj, telefone, email)
     )
     conn.commit()
-    return RedirectResponse(url="/fornecedores", status_code=303)
+    resp = RedirectResponse(url="/fornecedores", status_code=303)
+    set_flash(resp, "Fornecedor cadastrado com sucesso!")
+    return resp
 
 @app.post("/fornecedores/deletar/{id}")
 async def deletar_fornecedor(
@@ -381,7 +408,9 @@ async def deletar_fornecedor(
         return RedirectResponse(url="/login", status_code=303)
     conn.execute("DELETE FROM fornecedores WHERE id = ?", (id,))
     conn.commit()
-    return RedirectResponse(url="/fornecedores", status_code=303)
+    resp = RedirectResponse(url="/fornecedores", status_code=303)
+    set_flash(resp, "Fornecedor excluído.", "warning")
+    return resp
 
 @app.post("/fornecedores/editar/{id}")
 async def editar_fornecedor(
@@ -402,7 +431,9 @@ async def editar_fornecedor(
         WHERE id = ?
     """, (nome, cnpj, telefone, email, id))
     conn.commit()
-    return RedirectResponse(url="/fornecedores", status_code=303)
+    resp = RedirectResponse(url="/fornecedores", status_code=303)
+    set_flash(resp, "Fornecedor atualizado com sucesso!")
+    return resp
 
 # --- VENDAS ---
 @app.get("/vendas", response_class=HTMLResponse)
@@ -504,7 +535,9 @@ async def nova_empresa(
         VALUES (?, ?, ?, ?, ?)
     """, (nome, razao_social, cnpj, tel, email))
     conn.commit()
-    return RedirectResponse(url="/empresas", status_code=303)
+    resp = RedirectResponse(url="/empresas", status_code=303)
+    set_flash(resp, "Empresa cadastrada com sucesso!")
+    return resp
 
 @app.post("/empresas/deletar/{id}")
 async def deletar_empresa(request: Request, id: int, conn: sqlite3.Connection = Depends(get_db)):
@@ -512,7 +545,9 @@ async def deletar_empresa(request: Request, id: int, conn: sqlite3.Connection = 
     if not user or user['perfil'] != 'admin': return RedirectResponse(url="/", status_code=303)
     conn.execute("DELETE FROM empresas WHERE id = ?", (id,))
     conn.commit()
-    return RedirectResponse(url="/empresas", status_code=303)
+    resp = RedirectResponse(url="/empresas", status_code=303)
+    set_flash(resp, "Empresa excluída.", "warning")
+    return resp
 
 @app.get("/empresas/editar/{id}", response_class=HTMLResponse)
 async def editar_empresa_page(request: Request, id: int, conn: sqlite3.Connection = Depends(get_db)):
@@ -547,7 +582,9 @@ async def atualizar_empresa(
         WHERE id = ?
     """, (nome, cnpj, tel, email, id))
     conn.commit()
-    return RedirectResponse(url="/empresas", status_code=303)
+    resp = RedirectResponse(url="/empresas", status_code=303)
+    set_flash(resp, "Empresa atualizada com sucesso!")
+    return resp
 
 # --- API ---
 @app.get("/api/produtos/{empresa_id}")
