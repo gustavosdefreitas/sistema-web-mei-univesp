@@ -567,7 +567,7 @@ def test_editar_fornecedor_sem_auth_redireciona(client):
     """POST /fornecedores/editar/{id} sem autenticação redireciona para /login."""
     response = client.post(
         "/fornecedores/editar/1",
-        data={"nome": "X", "cnpj": None, "telefone": None, "email": None},
+        data={"cnpj": "11.111.111/0001-11", "nome": "X", "telefone": "", "email": ""},
         follow_redirects=False,
     )
     assert response.status_code == 303
