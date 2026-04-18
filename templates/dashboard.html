@@ -91,6 +91,34 @@
     </div>
 </div>
 
+{# ── Produto mais vendido ── #}
+{% if top_produto %}
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm border-start border-warning border-4">
+            <div class="card-body d-flex align-items-center justify-content-between py-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-warning text-dark p-3 rounded-3 me-3">
+                        <i class="fas fa-trophy fa-2x"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-0">Produto Mais Vendido</h6>
+                        <h5 class="fw-bold mb-0">{{ top_produto.nome }}</h5>
+                        <small class="text-muted">
+                            {{ top_produto.total_vendido }} unidade(s) vendida(s) &mdash;
+                            receita de <strong class="text-success">R$ {{ "%.2f"|format(top_produto.receita) }}</strong>
+                        </small>
+                    </div>
+                </div>
+                <a href="/vendas" class="btn btn-outline-warning btn-sm">
+                    <i class="fas fa-chart-line me-1"></i>Ver vendas
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {# ── Gráfico + painel de análise ── #}
 <div class="row g-4 mb-4">
     <div class="col-lg-8">
