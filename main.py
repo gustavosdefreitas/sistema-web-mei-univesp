@@ -138,6 +138,15 @@ async def dashboard(request: Request, conn: sqlite3.Connection = Depends(get_db)
     total_fornecedores = conn.execute("SELECT COUNT(*) FROM fornecedores").fetchone()[0]
     valor_total_estoque = conn.execute("SELECT COALESCE(SUM(quantidade * preco), 0) FROM produtos").fetchone()[0]
 
+    top_produto = conn.execute("""
+        SELECT p.nome, SUM(v.quantidade) AS total_vendido, SUM(v.total) AS receita
+        FROM vendas v
+        JOIN produtos p ON v.produto_id = p.id
+        GROUP BY p.id
+        ORDER BY total_vendido DESC
+        LIMIT 1
+    """).fetchone()
+
     dados_grafico = conn.execute("""
         SELECT e.nome_fantasia, SUM(p.quantidade) as total 
         FROM produtos p 
@@ -168,6 +177,7 @@ async def dashboard(request: Request, conn: sqlite3.Connection = Depends(get_db)
         "total_empresas": total_empresas,
         "total_fornecedores": total_fornecedores,
         "valor_total_estoque": valor_total_estoque,
+        "top_produto": top_produto,
         "labels": labels,
         "valores": valores,
         "vendas_recentes": vendas_recentes
