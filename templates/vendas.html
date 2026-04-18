@@ -85,6 +85,15 @@
                             </tr>
                             {% endfor %}
                         </tbody>
+                        {% if vendas %}
+                        <tfoot class="table-light fw-bold">
+                            <tr>
+                                <td colspan="3" class="ps-3 text-end">Total geral:</td>
+                                <td></td>
+                                <td class="text-success">R$ {{ "%.2f"|format(vendas|sum(attribute='total')) }}</td>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
                     </table>
                 </div>
             </div>

@@ -535,7 +535,14 @@ async def atualizar_empresa(
 
 # --- API ---
 @app.get("/api/produtos/{empresa_id}")
-async def api_listar_produtos(empresa_id: int, conn: sqlite3.Connection = Depends(get_db)):
+async def api_listar_produtos(
+    request: Request,
+    empresa_id: int,
+    conn: sqlite3.Connection = Depends(get_db)
+):
+    user = get_current_user(request, conn)
+    if not user:
+        return {"erro": "Não autorizado. Faça login para acessar esta rota."}
     produtos = conn.execute(
         "SELECT nome, quantidade, preco FROM produtos WHERE empresa_id = ?", (empresa_id,)
     ).fetchall()
