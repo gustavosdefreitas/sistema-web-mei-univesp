@@ -63,10 +63,21 @@ def get_db():
     """
     conn = sqlite3.connect(DATABASE_URL, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    # Migração automática: adiciona colunas se não existirem
+    _migrate_db(conn)
     try:
         yield conn
     finally:
         conn.close()
+
+def _migrate_db(conn: sqlite3.Connection):
+    """Aplica migrações incrementais no banco sem recriar tabelas."""
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(usuarios)")}
+    if "nome_completo" not in cols:
+        conn.execute("ALTER TABLE usuarios ADD COLUMN nome_completo TEXT")
+    if "cpf" not in cols:
+        conn.execute("ALTER TABLE usuarios ADD COLUMN cpf TEXT")
+    conn.commit()
 
 def hash_password(password: str) -> str:
     """Gera hash bcrypt com salt automático. Retorna string UTF-8."""
@@ -298,7 +309,7 @@ async def listar_usuarios(request: Request, conn: sqlite3.Connection = Depends(g
     user = get_current_user(request, conn)
     if not user: return RedirectResponse(url="/login", status_code=303)
 
-    cursor = conn.execute("SELECT id, username, perfil FROM usuarios")
+    cursor = conn.execute("SELECT id, username, nome_completo, cpf, perfil FROM usuarios")
     lista_limpa = [dict(row) for row in cursor.fetchall()]
 
     return templates.TemplateResponse(request, "usuarios.html", {
@@ -310,6 +321,8 @@ async def listar_usuarios(request: Request, conn: sqlite3.Connection = Depends(g
 async def novo_usuario(
     request: Request,
     username: str = Form(...),
+    nome_completo: str = Form(""),
+    cpf: str = Form(""),
     password: str = Form(...),
     perfil: str = Form(...),
     conn: sqlite3.Connection = Depends(get_db)
@@ -320,8 +333,8 @@ async def novo_usuario(
 
     try:
         conn.execute(
-            "INSERT INTO usuarios (username, password, perfil) VALUES (?, ?, ?)",
-            (username, hash_password(password), perfil)
+            "INSERT INTO usuarios (username, nome_completo, cpf, password, perfil) VALUES (?, ?, ?, ?, ?)",
+            (username, nome_completo.strip(), cpf.strip(), hash_password(password), perfil)
         )
         conn.commit()
     except sqlite3.IntegrityError:
@@ -342,7 +355,7 @@ async def editar_usuario_page(request: Request, user_id: int, conn: sqlite3.Conn
     user = get_current_user(request, conn)
     if not user or user['perfil'] != 'admin':
         return RedirectResponse(url="/", status_code=303)
-    usuario = conn.execute("SELECT id, username, perfil FROM usuarios WHERE id = ?", (user_id,)).fetchone()
+    usuario = conn.execute("SELECT id, username, nome_completo, cpf, perfil FROM usuarios WHERE id = ?", (user_id,)).fetchone()
     if not usuario:
         return RedirectResponse(url="/usuarios", status_code=303)
     return templates.TemplateResponse(request, "editar_usuario.html", {
@@ -354,6 +367,8 @@ async def editar_usuario(
     user_id: int,
     request: Request,
     username: str = Form(...),
+    nome_completo: str = Form(""),
+    cpf: str = Form(""),
     perfil: str = Form(...),
     password: str = Form(None),
     conn: sqlite3.Connection = Depends(get_db)
@@ -364,13 +379,13 @@ async def editar_usuario(
 
     if password:
         conn.execute(
-            "UPDATE usuarios SET username = ?, perfil = ?, password = ? WHERE id = ?",
-            (username, perfil, hash_password(password), user_id)
+            "UPDATE usuarios SET username = ?, nome_completo = ?, cpf = ?, perfil = ?, password = ? WHERE id = ?",
+            (username, nome_completo.strip(), cpf.strip(), perfil, hash_password(password), user_id)
         )
     else:
         conn.execute(
-            "UPDATE usuarios SET username = ?, perfil = ? WHERE id = ?",
-            (username, perfil, user_id)
+            "UPDATE usuarios SET username = ?, nome_completo = ?, cpf = ?, perfil = ? WHERE id = ?",
+            (username, nome_completo.strip(), cpf.strip(), perfil, user_id)
         )
     conn.commit()
     return RedirectResponse(url="/usuarios", status_code=303)
