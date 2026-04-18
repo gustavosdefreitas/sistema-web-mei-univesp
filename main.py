@@ -6,6 +6,7 @@ import uuid
 import os
 import bcrypt
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -20,6 +21,19 @@ SECURE_COOKIE = os.environ.get("ENVIRONMENT", "development") == "production"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+
+# Filtro Jinja2: converte "2026-04-18 10:30:00" → "18/04/2026 10:30"
+def format_datetime(value: str) -> str:
+    if not value:
+        return "-"
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(str(value), fmt).strftime("%d/%m/%Y %H:%M")
+        except ValueError:
+            continue
+    return str(value)
+
+templates.env.filters["databr"] = format_datetime
 
 # --- BANCO DE DADOS ---
 def get_db():
@@ -103,6 +117,7 @@ async def dashboard(request: Request, conn: sqlite3.Connection = Depends(get_db)
     total_vendas = conn.execute("SELECT COUNT(*) FROM vendas").fetchone()[0]
     total_empresas = conn.execute("SELECT COUNT(*) FROM empresas").fetchone()[0]
     total_fornecedores = conn.execute("SELECT COUNT(*) FROM fornecedores").fetchone()[0]
+    valor_total_estoque = conn.execute("SELECT COALESCE(SUM(quantidade * preco), 0) FROM produtos").fetchone()[0]
 
     dados_grafico = conn.execute("""
         SELECT e.nome_fantasia, SUM(p.quantidade) as total 
@@ -133,6 +148,7 @@ async def dashboard(request: Request, conn: sqlite3.Connection = Depends(get_db)
         "total_vendas": total_vendas,
         "total_empresas": total_empresas,
         "total_fornecedores": total_fornecedores,
+        "valor_total_estoque": valor_total_estoque,
         "labels": labels,
         "valores": valores,
         "vendas_recentes": vendas_recentes
