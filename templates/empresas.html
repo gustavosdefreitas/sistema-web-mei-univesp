@@ -32,7 +32,7 @@
                             <a href="/empresas/editar/{{ e.id }}" class="btn btn-outline-primary btn-sm me-1">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <form method="POST" action="/empresas/deletar/{{ e.id }}" style="display:inline" onsubmit="return confirm('Excluir esta empresa?')">
+                            <form method="POST" action="/empresas/deletar/{{ e.id }}" style="display:inline" onsubmit="return confirm('Excluir a empresa {{ e.nome_fantasia }}? Esta ação não pode ser desfeita.')">
                                 <button type="submit" class="btn btn-outline-danger btn-sm">
                                     <i class="fas fa-trash"></i>
                                 </button>

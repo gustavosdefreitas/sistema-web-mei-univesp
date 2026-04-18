@@ -7,7 +7,11 @@
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">➕ Novo</button>
     </div>
     <div class="card-body">
-        <table class="table table-hover">
+        {# Campo de busca #}
+        <div class="mb-3">
+            <input type="text" id="buscaProduto" class="form-control" placeholder="🔍 Buscar produto por nome, empresa ou fornecedor..." oninput="filtrarProdutos()">
+        </div>
+        <table class="table table-hover" id="tabelaProdutos">
             <thead><tr><th>Nome</th><th>Estoque</th><th>Empresa</th><th>Fornecedor</th><th>Preço</th><th>Ações</th></tr></thead>
             <tbody>
                 {% for p in produtos %}
@@ -87,4 +91,14 @@
     </div>
   </div>
 </div>
+<script>
+function filtrarProdutos() {
+    const termo = document.getElementById('buscaProduto').value.toLowerCase();
+    const linhas = document.querySelectorAll('#tabelaProdutos tbody tr');
+    linhas.forEach(function(linha) {
+        const texto = linha.textContent.toLowerCase();
+        linha.style.display = texto.includes(termo) ? '' : 'none';
+    });
+}
+</script>
 {% endblock %}
