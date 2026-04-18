@@ -114,9 +114,9 @@
                                             {% endif %}
 
                                             <div class="mb-3">
-                                                <label class="form-label fw-bold">Nome Fantasia / Razão Social</label>
+                                                <label class="form-label fw-bold">Nome Fantasia / Razão Social <span class="text-muted fw-normal">(opcional)</span></label>
                                                 <input type="text" id="edit-{{ f.id }}-nome" name="nome"
-                                                       value="{{ f.nome }}" class="form-control" required>
+                                                       value="{{ f.nome }}" class="form-control">
                                             </div>
                                             <div class="row">
                                                 <div class="col-md-6 mb-3">
@@ -183,9 +183,9 @@
                     <div id="novo-forn-situacao-display" class="d-none alert py-2 px-3 mb-3"></div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Nome do Fornecedor</label>
+                        <label class="form-label fw-bold">Nome do Fornecedor <span class="text-muted fw-normal">(preenchido automaticamente)</span></label>
                         <input type="text" id="novo-forn-nome" name="nome"
-                               class="form-control" placeholder="Ex: Tecidos Helena LTDA" required>
+                               class="form-control" placeholder="Preenchido pela Receita Federal ou informe manualmente">
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">

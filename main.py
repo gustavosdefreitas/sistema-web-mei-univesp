@@ -417,8 +417,8 @@ async def listar_fornecedores(request: Request, conn: sqlite3.Connection = Depen
 @app.post("/fornecedores/novo")
 async def novo_fornecedor(
     request: Request,
-    nome: str = Form(...),
-    cnpj: str = Form(None),
+    cnpj: str = Form(...),
+    nome: str = Form(None),
     telefone: str = Form(None),
     email: str = Form(None),
     situacao_cadastral: str = Form(None),
@@ -430,7 +430,7 @@ async def novo_fornecedor(
         return RedirectResponse(url="/login", status_code=303)
     conn.execute(
         "INSERT INTO fornecedores (nome, cnpj, telefone, email, situacao_cadastral, data_situacao_cadastral) VALUES (?, ?, ?, ?, ?, ?)",
-        (nome, cnpj, telefone, email, situacao_cadastral, data_situacao_cadastral)
+        (nome or '', cnpj, telefone, email, situacao_cadastral, data_situacao_cadastral)
     )
     conn.commit()
     resp = RedirectResponse(url="/fornecedores", status_code=303)
@@ -456,8 +456,8 @@ async def deletar_fornecedor(
 async def editar_fornecedor(
     request: Request,
     id: int,
-    nome: str = Form(...),
-    cnpj: str = Form(None),
+    cnpj: str = Form(...),
+    nome: str = Form(None),
     telefone: str = Form(None),
     email: str = Form(None),
     situacao_cadastral: str = Form(None),
@@ -471,7 +471,7 @@ async def editar_fornecedor(
         UPDATE fornecedores 
         SET nome = ?, cnpj = ?, telefone = ?, email = ?, situacao_cadastral = ?, data_situacao_cadastral = ?
         WHERE id = ?
-    """, (nome, cnpj, telefone, email, situacao_cadastral, data_situacao_cadastral, id))
+    """, (nome or '', cnpj, telefone, email, situacao_cadastral, data_situacao_cadastral, id))
     conn.commit()
     resp = RedirectResponse(url="/fornecedores", status_code=303)
     set_flash(resp, "Fornecedor atualizado com sucesso!")
@@ -562,11 +562,11 @@ async def listar_empresas(request: Request, conn: sqlite3.Connection = Depends(g
 @app.post("/empresas/nova")
 async def nova_empresa(
     request: Request,
-    nome: str = Form(...),
-    razao_social: str = Form(...),
     cnpj: str = Form(...),
-    tel: str = Form(...),
-    email: str = Form(...),
+    nome: str = Form(None),
+    razao_social: str = Form(None),
+    tel: str = Form(None),
+    email: str = Form(None),
     situacao_cadastral: str = Form(None),
     data_situacao_cadastral: str = Form(None),
     conn: sqlite3.Connection = Depends(get_db)
@@ -577,7 +577,7 @@ async def nova_empresa(
     conn.execute("""
         INSERT INTO empresas (nome_fantasia, razao_social, cnpj, telefone, email, situacao_cadastral, data_situacao_cadastral) 
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (nome, razao_social, cnpj, tel, email, situacao_cadastral, data_situacao_cadastral))
+    """, (nome or '', razao_social or '', cnpj, tel, email, situacao_cadastral, data_situacao_cadastral))
     conn.commit()
     resp = RedirectResponse(url="/empresas", status_code=303)
     set_flash(resp, "Empresa cadastrada com sucesso!")
@@ -611,10 +611,10 @@ async def editar_empresa_page(request: Request, id: int, conn: sqlite3.Connectio
 async def atualizar_empresa(
     request: Request,
     id: int,
-    nome: str = Form(...),
     cnpj: str = Form(...),
-    tel: str = Form(...),
-    email: str = Form(...),
+    nome: str = Form(None),
+    tel: str = Form(None),
+    email: str = Form(None),
     situacao_cadastral: str = Form(None),
     data_situacao_cadastral: str = Form(None),
     conn: sqlite3.Connection = Depends(get_db)
@@ -626,7 +626,7 @@ async def atualizar_empresa(
         UPDATE empresas 
         SET nome_fantasia = ?, cnpj = ?, telefone = ?, email = ?, situacao_cadastral = ?, data_situacao_cadastral = ?
         WHERE id = ?
-    """, (nome, cnpj, tel, email, situacao_cadastral, data_situacao_cadastral, id))
+    """, (nome or '', cnpj, tel, email, situacao_cadastral, data_situacao_cadastral, id))
     conn.commit()
     resp = RedirectResponse(url="/empresas", status_code=303)
     set_flash(resp, "Empresa atualizada com sucesso!")
