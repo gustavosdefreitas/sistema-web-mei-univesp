@@ -11,23 +11,38 @@
             </div>
             <div class="card-body p-4">
                 <form action="/empresas/editar/{{ empresa.id }}" method="POST">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">CNPJ <small class="text-muted fw-normal">(digite para buscar dados da Receita Federal)</small></label>
+                        <div class="input-group">
+                            <input type="text" id="cnpj-editar-emp" name="cnpj"
+                                   class="form-control" value="{{ empresa.cnpj }}"
+                                   placeholder="00.000.000/0000-00"
+                                   oninput="mascararCnpj(this)">
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="buscarCnpjEdicao()">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                        </div>
+                        <div id="cnpj-status-edicao" class="form-text"></div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Nome Fantasia</label>
-                        <input type="text" name="nome" class="form-control" value="{{ empresa.nome_fantasia }}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">CNPJ</label>
-                        <input type="text" name="cnpj" class="form-control" value="{{ empresa.cnpj }}">
+                        <input type="text" id="edit-emp-nome" name="nome"
+                               class="form-control" value="{{ empresa.nome_fantasia }}" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Telefone</label>
-                        <input type="text" name="tel" class="form-control" value="{{ empresa.telefone }}">
+                        <input type="text" id="edit-emp-telefone" name="tel"
+                               class="form-control" value="{{ empresa.telefone }}">
                     </div>
                     <div class="mb-4">
                         <label class="form-label fw-bold">E-mail</label>
-                        <input type="email" name="email" class="form-control" value="{{ empresa.email }}">
+                        <input type="email" id="edit-emp-email" name="email"
+                               class="form-control" value="{{ empresa.email }}">
                     </div>
-                    
+
                     <div class="d-flex gap-2">
                         <a href="/empresas" class="btn btn-outline-secondary w-50">Cancelar</a>
                         <button type="submit" class="btn btn-primary w-50 fw-bold">Salvar Alterações</button>
@@ -37,4 +52,57 @@
         </div>
     </div>
 </div>
+
+<script>
+function mascararCnpj(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 14);
+    v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+    v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+    v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
+    v = v.replace(/(\d{4})(\d)/, '$1-$2');
+    input.value = v;
+}
+
+async function buscarCnpjEdicao() {
+    const cnpjRaw = document.getElementById('cnpj-editar-emp').value.replace(/\D/g, '');
+    const statusEl = document.getElementById('cnpj-status-edicao');
+
+    if (cnpjRaw.length !== 14) {
+        statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>CNPJ deve ter 14 dígitos.</span>';
+        return;
+    }
+
+    statusEl.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Consultando Receita Federal...</span>';
+
+    try {
+        const resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjRaw}`);
+        if (!resp.ok) {
+            statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>CNPJ não encontrado na Receita Federal.</span>';
+            return;
+        }
+        const d = await resp.json();
+
+        const nomeFantasia = d.nome_fantasia && d.nome_fantasia.trim() ? d.nome_fantasia : d.razao_social;
+        setField('edit-emp-nome',     nomeFantasia   || '');
+        setField('edit-emp-telefone', d.ddd_telefone_1 ? formatTel(d.ddd_telefone_1) : '');
+        setField('edit-emp-email',    d.email        || '');
+
+        statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Dados atualizados da Receita Federal.</span>';
+    } catch (e) {
+        statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>Erro ao consultar. Verifique sua conexão.</span>';
+    }
+}
+
+function setField(id, value) {
+    const el = document.getElementById(id);
+    if (el && value) el.value = value;
+}
+
+function formatTel(dddTel) {
+    const digits = dddTel.replace(/\D/g, '');
+    if (digits.length === 10) return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
+    if (digits.length === 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+    return dddTel;
+}
+</script>
 {% endblock %}

@@ -6,7 +6,7 @@
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
         <h4 class="mb-0 fw-bold text-primary">
-	    <i class="fas fa-city me-2"></i>Empresas Cadastradas</h5>
+	    <i class="fas fa-city me-2"></i>Empresas Cadastradas</h4>
         <button class="btn btn-dark btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalEmpresa">
             <i class="fas fa-plus me-1"></i> Nova Empresa
         </button>
@@ -48,24 +48,110 @@
     </div>
 </div>
 
+{# Modal nova empresa #}
 <div class="modal fade" id="modalEmpresa" tabindex="-1">
     <div class="modal-dialog">
         <form action="/empresas/nova" method="POST" class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Cadastrar Empresa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2"></i>Cadastrar Empresa</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <input type="text" name="nome" placeholder="Nome Fantasia" class="form-control mb-3" required>
-                <input type="text" name="razao_social" placeholder="Razão Social" class="form-control mb-3" required>
-                <input type="text" name="cnpj" placeholder="CNPJ" class="form-control mb-3">
-                <input type="text" name="tel" placeholder="Telefone" class="form-control mb-3">
-                <input type="email" name="email" placeholder="E-mail" class="form-control mb-3">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">CNPJ <small class="text-muted fw-normal">(preencha para buscar dados automáticos)</small></label>
+                    <div class="input-group">
+                        <input type="text" id="cnpj-nova-emp" name="cnpj"
+                               class="form-control" placeholder="00.000.000/0000-00"
+                               oninput="mascararCnpj(this)">
+                        <button type="button" class="btn btn-outline-primary"
+                                onclick="buscarCnpjEmpresa('cnpj-nova-emp', 'nova-emp')">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                    <div id="cnpj-status-nova-emp" class="form-text"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nome Fantasia</label>
+                    <input type="text" id="nova-emp-nome" name="nome"
+                           class="form-control" placeholder="Nome Fantasia" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Razão Social</label>
+                    <input type="text" id="nova-emp-razao" name="razao_social"
+                           class="form-control" placeholder="Razão Social" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Telefone</label>
+                    <input type="text" id="nova-emp-telefone" name="tel"
+                           class="form-control" placeholder="(00) 00000-0000">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">E-mail</label>
+                    <input type="email" id="nova-emp-email" name="email"
+                           class="form-control" placeholder="contato@empresa.com">
+                </div>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="submit" class="btn btn-success w-100">Salvar Empresa</button>
             </div>
         </form>
     </div>
 </div>
+
+{# ── Script de consulta CNPJ via BrasilAPI ── #}
+<script>
+function mascararCnpj(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 14);
+    v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+    v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+    v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
+    v = v.replace(/(\d{4})(\d)/, '$1-$2');
+    input.value = v;
+}
+
+async function buscarCnpjEmpresa(cnpjInputId, prefixo) {
+    const cnpjRaw = document.getElementById(cnpjInputId).value.replace(/\D/g, '');
+    const statusEl = document.getElementById('cnpj-status-' + prefixo);
+
+    if (cnpjRaw.length !== 14) {
+        statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>CNPJ deve ter 14 dígitos.</span>';
+        return;
+    }
+
+    statusEl.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Consultando Receita Federal...</span>';
+
+    try {
+        const resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjRaw}`);
+        if (!resp.ok) {
+            statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>CNPJ não encontrado na Receita Federal.</span>';
+            return;
+        }
+        const d = await resp.json();
+
+        // Nome fantasia (fallback para razão social se vazio)
+        const nomeFantasia = d.nome_fantasia && d.nome_fantasia.trim() ? d.nome_fantasia : d.razao_social;
+        setField(prefixo + '-nome',     nomeFantasia  || '');
+        setField(prefixo + '-razao',    d.razao_social || '');
+        setField(prefixo + '-telefone', d.ddd_telefone_1 ? formatTel(d.ddd_telefone_1) : '');
+        setField(prefixo + '-email',    d.email        || '');
+
+        statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Dados preenchidos automaticamente da Receita Federal.</span>';
+    } catch (e) {
+        statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>Erro ao consultar. Verifique sua conexão.</span>';
+    }
+}
+
+function setField(id, value) {
+    const el = document.getElementById(id);
+    if (el && value) el.value = value;
+}
+
+function formatTel(dddTel) {
+    const digits = dddTel.replace(/\D/g, '');
+    if (digits.length === 10) return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
+    if (digits.length === 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+    return dddTel;
+}
+</script>
 {% endblock %}
