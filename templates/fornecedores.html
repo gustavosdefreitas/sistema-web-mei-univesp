@@ -17,10 +17,11 @@
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 30%;">Nome / Empresa</th>
-                            <th style="width: 20%;">CNPJ</th>
-                            <th style="width: 20%;">Telefone</th>
-                            <th style="width: 15%; text-align: center;">Ações</th>
+                            <th style="width: 28%;">Nome / Empresa</th>
+                            <th style="width: 18%;">CNPJ</th>
+                            <th style="width: 16%;">Telefone</th>
+                            <th style="width: 18%;">Situação Receita Federal</th>
+                            <th style="width: 12%; text-align: center;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -32,6 +33,27 @@
                             </td>
                             <td><span class="badge bg-light text-dark border">{{ f.cnpj or '---' }}</span></td>
                             <td>{{ f.telefone or '---' }}</td>
+                            <td>
+                                {% if f.situacao_cadastral %}
+                                    {% set sit = f.situacao_cadastral | upper %}
+                                    {% if sit == 'ATIVA' %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>ATIVA</span>
+                                    {% elif sit == 'BAIXADA' %}
+                                        <span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>BAIXADA</span>
+                                    {% elif sit == 'INAPTA' %}
+                                        <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>INAPTA</span>
+                                    {% elif sit == 'SUSPENSA' %}
+                                        <span class="badge bg-warning text-dark"><i class="fas fa-pause-circle me-1"></i>SUSPENSA</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ f.situacao_cadastral }}</span>
+                                    {% endif %}
+                                    {% if f.data_situacao_cadastral %}
+                                        <div class="small text-muted mt-1">desde {{ f.data_situacao_cadastral }}</div>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted small">—</span>
+                                {% endif %}
+                            </td>
                             <td class="text-center">
                                 <button class="btn btn-outline-warning btn-sm me-1" 
                                         data-bs-toggle="modal" 
@@ -50,16 +72,18 @@
 
                         {# Modal editar fornecedor #}
                         <div class="modal fade" id="modalEditarFornecedor{{ f.id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-dialog modal-dialog-centered modal-lg">
                                 <div class="modal-content shadow-lg">
                                     <form action="/fornecedores/editar/{{ f.id }}" method="POST">
+                                        <input type="hidden" id="edit-{{ f.id }}-situacao_cadastral" name="situacao_cadastral" value="{{ f.situacao_cadastral or '' }}">
+                                        <input type="hidden" id="edit-{{ f.id }}-data_situacao_cadastral" name="data_situacao_cadastral" value="{{ f.data_situacao_cadastral or '' }}">
                                         <div class="modal-header bg-warning">
                                             <h5 class="modal-title fw-bold text-dark"><i class="fas fa-user-edit me-2"></i>Editar Fornecedor</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body p-4 text-start">
                                             <div class="mb-3">
-                                                <label class="form-label">CNPJ</label>
+                                                <label class="form-label fw-bold">CNPJ</label>
                                                 <div class="input-group">
                                                     <input type="text" id="cnpj-editar-{{ f.id }}" name="cnpj"
                                                            value="{{ f.cnpj or '' }}"
@@ -72,20 +96,39 @@
                                                 </div>
                                                 <div id="cnpj-status-edit-{{ f.id }}" class="form-text"></div>
                                             </div>
+
+                                            {# Situação cadastral — exibida se já existir #}
+                                            {% if f.situacao_cadastral %}
+                                            <div class="alert alert-sm py-2 px-3 mb-3
+                                                {% if f.situacao_cadastral | upper == 'ATIVA' %}alert-success
+                                                {% elif f.situacao_cadastral | upper == 'INAPTA' %}alert-danger
+                                                {% elif f.situacao_cadastral | upper == 'SUSPENSA' %}alert-warning
+                                                {% else %}alert-secondary{% endif %}" id="edit-{{ f.id }}-situacao-display">
+                                                <i class="fas fa-building me-1"></i>
+                                                <strong>Situação Receita Federal:</strong>
+                                                <span id="edit-{{ f.id }}-situacao-text">{{ f.situacao_cadastral }}</span>
+                                                {% if f.data_situacao_cadastral %}<small class="ms-2 opacity-75">desde {{ f.data_situacao_cadastral }}</small>{% endif %}
+                                            </div>
+                                            {% else %}
+                                            <div id="edit-{{ f.id }}-situacao-display" class="d-none"></div>
+                                            {% endif %}
+
                                             <div class="mb-3">
-                                                <label class="form-label">Nome Fantasia / Razão Social</label>
+                                                <label class="form-label fw-bold">Nome Fantasia / Razão Social</label>
                                                 <input type="text" id="edit-{{ f.id }}-nome" name="nome"
                                                        value="{{ f.nome }}" class="form-control" required>
                                             </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Telefone de Contato</label>
-                                                <input type="text" id="edit-{{ f.id }}-telefone" name="telefone"
-                                                       value="{{ f.telefone or '' }}" class="form-control" placeholder="(00) 00000-0000">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">E-mail</label>
-                                                <input type="email" id="edit-{{ f.id }}-email" name="email"
-                                                       value="{{ f.email or '' }}" class="form-control" placeholder="contato@fornecedor.com">
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label fw-bold">Telefone</label>
+                                                    <input type="text" id="edit-{{ f.id }}-telefone" name="telefone"
+                                                           value="{{ f.telefone or '' }}" class="form-control" placeholder="(00) 00000-0000">
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label fw-bold">E-mail</label>
+                                                    <input type="email" id="edit-{{ f.id }}-email" name="email"
+                                                           value="{{ f.email or '' }}" class="form-control" placeholder="contato@fornecedor.com">
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="modal-footer bg-light">
@@ -98,7 +141,7 @@
                         </div>
                         {% else %}
                         <tr>
-                            <td colspan="4" class="text-center py-5 text-muted">
+                            <td colspan="5" class="text-center py-5 text-muted">
                                 <i class="fas fa-info-circle me-2"></i>Nenhum fornecedor cadastrado.
                             </td>
                         </tr>
@@ -112,9 +155,11 @@
 
 {# Modal novo fornecedor #}
 <div class="modal fade" id="modalNovoFornecedor" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content shadow-lg">
             <form action="/fornecedores/novo" method="POST">
+                <input type="hidden" id="novo-forn-situacao_cadastral" name="situacao_cadastral" value="">
+                <input type="hidden" id="novo-forn-data_situacao_cadastral" name="data_situacao_cadastral" value="">
                 <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2"></i>Novo Fornecedor</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -133,20 +178,26 @@
                         </div>
                         <div id="cnpj-status-novo-forn" class="form-text"></div>
                     </div>
+
+                    {# Situação cadastral — aparece após busca #}
+                    <div id="novo-forn-situacao-display" class="d-none alert py-2 px-3 mb-3"></div>
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Nome do Fornecedor</label>
                         <input type="text" id="novo-forn-nome" name="nome"
                                class="form-control" placeholder="Ex: Tecidos Helena LTDA" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Telefone</label>
-                        <input type="text" id="novo-forn-telefone" name="telefone"
-                               class="form-control" placeholder="(00) 00000-0000">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">E-mail</label>
-                        <input type="email" id="novo-forn-email" name="email"
-                               class="form-control" placeholder="contato@fornecedor.com">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Telefone</label>
+                            <input type="text" id="novo-forn-telefone" name="telefone"
+                                   class="form-control" placeholder="(00) 00000-0000">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">E-mail</label>
+                            <input type="email" id="novo-forn-email" name="email"
+                                   class="form-control" placeholder="contato@fornecedor.com">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
@@ -188,11 +239,20 @@ async function buscarCnpj(cnpjInputId, prefixo) {
         }
         const d = await resp.json();
 
-        // Preenche os campos com os dados retornados
+        // Preenche campos principais
         const nome = d.nome_fantasia && d.nome_fantasia.trim() ? d.nome_fantasia : d.razao_social;
-        setField(prefixo + '-nome',     nome         || '');
+        setField(prefixo + '-nome',     nome || '');
         setField(prefixo + '-telefone', d.ddd_telefone_1 ? formatTel(d.ddd_telefone_1) : '');
-        setField(prefixo + '-email',    d.email      || '');
+        setField(prefixo + '-email',    d.email || '');
+
+        // Salva situação nos campos hidden
+        const sit = d.descricao_situacao_cadastral || '';
+        const dataSit = d.data_situacao_cadastral || '';
+        setField(prefixo + '-situacao_cadastral',      sit);
+        setField(prefixo + '-data_situacao_cadastral', dataSit);
+
+        // Exibe alerta de situação cadastral
+        exibirSituacao(prefixo, sit, dataSit);
 
         statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Dados preenchidos automaticamente da Receita Federal.</span>';
     } catch (e) {
@@ -200,9 +260,30 @@ async function buscarCnpj(cnpjInputId, prefixo) {
     }
 }
 
+function exibirSituacao(prefixo, situacao, dataSit) {
+    const el = document.getElementById(prefixo + '-situacao-display');
+    if (!el || !situacao) return;
+
+    const sitUp = situacao.toUpperCase();
+    let cls = 'alert-secondary';
+    let icon = 'fas fa-building';
+    if (sitUp === 'ATIVA')    { cls = 'alert-success'; icon = 'fas fa-check-circle'; }
+    if (sitUp === 'BAIXADA')  { cls = 'alert-secondary'; icon = 'fas fa-ban'; }
+    if (sitUp === 'INAPTA')   { cls = 'alert-danger'; icon = 'fas fa-times-circle'; }
+    if (sitUp === 'SUSPENSA') { cls = 'alert-warning'; icon = 'fas fa-pause-circle'; }
+
+    const dataStr = dataSit ? `<small class="ms-2 opacity-75">desde ${dataSit}</small>` : '';
+    el.className = `alert py-2 px-3 mb-3 ${cls}`;
+    el.innerHTML = `<i class="${icon} me-1"></i><strong>Situação Receita Federal:</strong> ${situacao}${dataStr}`;
+
+    // Atualiza texto no span se existir (modal editar)
+    const textEl = document.getElementById(prefixo + '-situacao-text');
+    if (textEl) textEl.textContent = situacao;
+}
+
 function setField(id, value) {
     const el = document.getElementById(id);
-    if (el && value) el.value = value;
+    if (el) el.value = value;
 }
 
 function formatTel(dddTel) {

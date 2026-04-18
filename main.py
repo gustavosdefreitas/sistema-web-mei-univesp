@@ -72,11 +72,24 @@ def get_db():
 
 def _migrate_db(conn: sqlite3.Connection):
     """Aplica migrações incrementais no banco sem recriar tabelas."""
-    cols = {row[1] for row in conn.execute("PRAGMA table_info(usuarios)")}
-    if "nome_completo" not in cols:
+    # usuarios
+    u_cols = {row[1] for row in conn.execute("PRAGMA table_info(usuarios)")}
+    if "nome_completo" not in u_cols:
         conn.execute("ALTER TABLE usuarios ADD COLUMN nome_completo TEXT")
-    if "cpf" not in cols:
+    if "cpf" not in u_cols:
         conn.execute("ALTER TABLE usuarios ADD COLUMN cpf TEXT")
+    # empresas
+    e_cols = {row[1] for row in conn.execute("PRAGMA table_info(empresas)")}
+    if "situacao_cadastral" not in e_cols:
+        conn.execute("ALTER TABLE empresas ADD COLUMN situacao_cadastral TEXT")
+    if "data_situacao_cadastral" not in e_cols:
+        conn.execute("ALTER TABLE empresas ADD COLUMN data_situacao_cadastral TEXT")
+    # fornecedores
+    f_cols = {row[1] for row in conn.execute("PRAGMA table_info(fornecedores)")}
+    if "situacao_cadastral" not in f_cols:
+        conn.execute("ALTER TABLE fornecedores ADD COLUMN situacao_cadastral TEXT")
+    if "data_situacao_cadastral" not in f_cols:
+        conn.execute("ALTER TABLE fornecedores ADD COLUMN data_situacao_cadastral TEXT")
     conn.commit()
 
 def hash_password(password: str) -> str:
@@ -408,14 +421,16 @@ async def novo_fornecedor(
     cnpj: str = Form(None),
     telefone: str = Form(None),
     email: str = Form(None),
+    situacao_cadastral: str = Form(None),
+    data_situacao_cadastral: str = Form(None),
     conn: sqlite3.Connection = Depends(get_db)
 ):
     user = get_current_user(request, conn)
     if not user:
         return RedirectResponse(url="/login", status_code=303)
     conn.execute(
-        "INSERT INTO fornecedores (nome, cnpj, telefone, email) VALUES (?, ?, ?, ?)",
-        (nome, cnpj, telefone, email)
+        "INSERT INTO fornecedores (nome, cnpj, telefone, email, situacao_cadastral, data_situacao_cadastral) VALUES (?, ?, ?, ?, ?, ?)",
+        (nome, cnpj, telefone, email, situacao_cadastral, data_situacao_cadastral)
     )
     conn.commit()
     resp = RedirectResponse(url="/fornecedores", status_code=303)
@@ -445,6 +460,8 @@ async def editar_fornecedor(
     cnpj: str = Form(None),
     telefone: str = Form(None),
     email: str = Form(None),
+    situacao_cadastral: str = Form(None),
+    data_situacao_cadastral: str = Form(None),
     conn: sqlite3.Connection = Depends(get_db)
 ):
     user = get_current_user(request, conn)
@@ -452,9 +469,9 @@ async def editar_fornecedor(
         return RedirectResponse(url="/login", status_code=303)
     conn.execute("""
         UPDATE fornecedores 
-        SET nome = ?, cnpj = ?, telefone = ?, email = ? 
+        SET nome = ?, cnpj = ?, telefone = ?, email = ?, situacao_cadastral = ?, data_situacao_cadastral = ?
         WHERE id = ?
-    """, (nome, cnpj, telefone, email, id))
+    """, (nome, cnpj, telefone, email, situacao_cadastral, data_situacao_cadastral, id))
     conn.commit()
     resp = RedirectResponse(url="/fornecedores", status_code=303)
     set_flash(resp, "Fornecedor atualizado com sucesso!")
@@ -550,15 +567,17 @@ async def nova_empresa(
     cnpj: str = Form(...),
     tel: str = Form(...),
     email: str = Form(...),
+    situacao_cadastral: str = Form(None),
+    data_situacao_cadastral: str = Form(None),
     conn: sqlite3.Connection = Depends(get_db)
 ):
     user = get_current_user(request, conn)
     if not user or user['perfil'] != 'admin':
         return RedirectResponse(url="/", status_code=303)
     conn.execute("""
-        INSERT INTO empresas (nome_fantasia, razao_social, cnpj, telefone, email) 
-        VALUES (?, ?, ?, ?, ?)
-    """, (nome, razao_social, cnpj, tel, email))
+        INSERT INTO empresas (nome_fantasia, razao_social, cnpj, telefone, email, situacao_cadastral, data_situacao_cadastral) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (nome, razao_social, cnpj, tel, email, situacao_cadastral, data_situacao_cadastral))
     conn.commit()
     resp = RedirectResponse(url="/empresas", status_code=303)
     set_flash(resp, "Empresa cadastrada com sucesso!")
@@ -596,6 +615,8 @@ async def atualizar_empresa(
     cnpj: str = Form(...),
     tel: str = Form(...),
     email: str = Form(...),
+    situacao_cadastral: str = Form(None),
+    data_situacao_cadastral: str = Form(None),
     conn: sqlite3.Connection = Depends(get_db)
 ):
     user = get_current_user(request, conn)
@@ -603,9 +624,9 @@ async def atualizar_empresa(
         return RedirectResponse(url="/", status_code=303)
     conn.execute("""
         UPDATE empresas 
-        SET nome_fantasia = ?, cnpj = ?, telefone = ?, email = ? 
+        SET nome_fantasia = ?, cnpj = ?, telefone = ?, email = ?, situacao_cadastral = ?, data_situacao_cadastral = ?
         WHERE id = ?
-    """, (nome, cnpj, tel, email, id))
+    """, (nome, cnpj, tel, email, situacao_cadastral, data_situacao_cadastral, id))
     conn.commit()
     resp = RedirectResponse(url="/empresas", status_code=303)
     set_flash(resp, "Empresa atualizada com sucesso!")

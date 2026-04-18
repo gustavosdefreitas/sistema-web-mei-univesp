@@ -38,24 +38,28 @@ CREATE TABLE IF NOT EXISTS usuarios (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS empresas (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome_fantasia TEXT   NOT NULL,
-    razao_social  TEXT,
-    cnpj          TEXT,
-    telefone      TEXT,
-    email         TEXT,
-    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome_fantasia         TEXT    NOT NULL,
+    razao_social          TEXT,
+    cnpj                  TEXT,
+    telefone              TEXT,
+    email                 TEXT,
+    situacao_cadastral    TEXT,
+    data_situacao_cadastral TEXT,
+    created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 """)
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS fornecedores (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome       TEXT NOT NULL,
-    cnpj       TEXT,
-    telefone   TEXT,
-    email      TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome                  TEXT NOT NULL,
+    cnpj                  TEXT,
+    telefone              TEXT,
+    email                 TEXT,
+    situacao_cadastral    TEXT,
+    data_situacao_cadastral TEXT,
+    created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 """)
 

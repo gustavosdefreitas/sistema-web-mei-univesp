@@ -19,6 +19,7 @@
                         <th>Nome Fantasia</th>
                         <th>CNPJ</th>
                         <th>Contato</th>
+                        <th>Situação Receita Federal</th>
                         <th class="text-center">Ações</th>
                     </tr>
                 </thead>
@@ -28,6 +29,27 @@
                         <td class="fw-bold">{{ e.nome_fantasia }}</td>
                         <td>{{ e.cnpj }}</td>
                         <td>{{ e.email }}<br><small class="text-muted">{{ e.telefone }}</small></td>
+                        <td>
+                            {% if e.situacao_cadastral %}
+                                {% set sit = e.situacao_cadastral | upper %}
+                                {% if sit == 'ATIVA' %}
+                                    <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>ATIVA</span>
+                                {% elif sit == 'BAIXADA' %}
+                                    <span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>BAIXADA</span>
+                                {% elif sit == 'INAPTA' %}
+                                    <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>INAPTA</span>
+                                {% elif sit == 'SUSPENSA' %}
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-pause-circle me-1"></i>SUSPENSA</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ e.situacao_cadastral }}</span>
+                                {% endif %}
+                                {% if e.data_situacao_cadastral %}
+                                    <div class="small text-muted mt-1">desde {{ e.data_situacao_cadastral }}</div>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
                         <td class="text-center">
                             <a href="/empresas/editar/{{ e.id }}" class="btn btn-outline-primary btn-sm me-1">
                                 <i class="fas fa-edit"></i>
@@ -40,7 +62,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="4" class="text-center py-4">Nenhuma empresa cadastrada.</td></tr>
+                    <tr><td colspan="5" class="text-center py-4">Nenhuma empresa cadastrada.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -50,8 +72,10 @@
 
 {# Modal nova empresa #}
 <div class="modal fade" id="modalEmpresa" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <form action="/empresas/nova" method="POST" class="modal-content">
+            <input type="hidden" id="nova-emp-situacao_cadastral" name="situacao_cadastral" value="">
+            <input type="hidden" id="nova-emp-data_situacao_cadastral" name="data_situacao_cadastral" value="">
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2"></i>Cadastrar Empresa</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -70,30 +94,38 @@
                     </div>
                     <div id="cnpj-status-nova-emp" class="form-text"></div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Nome Fantasia</label>
-                    <input type="text" id="nova-emp-nome" name="nome"
-                           class="form-control" placeholder="Nome Fantasia" required>
+
+                {# Situação cadastral — aparece após busca #}
+                <div id="nova-emp-situacao-display" class="d-none alert py-2 px-3 mb-3"></div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Nome Fantasia</label>
+                        <input type="text" id="nova-emp-nome" name="nome"
+                               class="form-control" placeholder="Nome Fantasia" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Razão Social</label>
+                        <input type="text" id="nova-emp-razao" name="razao_social"
+                               class="form-control" placeholder="Razão Social" required>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Razão Social</label>
-                    <input type="text" id="nova-emp-razao" name="razao_social"
-                           class="form-control" placeholder="Razão Social" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Telefone</label>
-                    <input type="text" id="nova-emp-telefone" name="tel"
-                           class="form-control" placeholder="(00) 00000-0000">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">E-mail</label>
-                    <input type="email" id="nova-emp-email" name="email"
-                           class="form-control" placeholder="contato@empresa.com">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Telefone</label>
+                        <input type="text" id="nova-emp-telefone" name="tel"
+                               class="form-control" placeholder="(00) 00000-0000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">E-mail</label>
+                        <input type="email" id="nova-emp-email" name="email"
+                               class="form-control" placeholder="contato@empresa.com">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="submit" class="btn btn-success w-100">Salvar Empresa</button>
+                <button type="submit" class="btn btn-success">Salvar Empresa</button>
             </div>
         </form>
     </div>
@@ -131,10 +163,19 @@ async function buscarCnpjEmpresa(cnpjInputId, prefixo) {
 
         // Nome fantasia (fallback para razão social se vazio)
         const nomeFantasia = d.nome_fantasia && d.nome_fantasia.trim() ? d.nome_fantasia : d.razao_social;
-        setField(prefixo + '-nome',     nomeFantasia  || '');
+        setField(prefixo + '-nome',     nomeFantasia   || '');
         setField(prefixo + '-razao',    d.razao_social || '');
         setField(prefixo + '-telefone', d.ddd_telefone_1 ? formatTel(d.ddd_telefone_1) : '');
         setField(prefixo + '-email',    d.email        || '');
+
+        // Salva situação nos campos hidden
+        const sit = d.descricao_situacao_cadastral || '';
+        const dataSit = d.data_situacao_cadastral || '';
+        setField(prefixo + '-situacao_cadastral',      sit);
+        setField(prefixo + '-data_situacao_cadastral', dataSit);
+
+        // Exibe alerta de situação
+        exibirSituacao(prefixo, sit, dataSit);
 
         statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Dados preenchidos automaticamente da Receita Federal.</span>';
     } catch (e) {
@@ -142,9 +183,26 @@ async function buscarCnpjEmpresa(cnpjInputId, prefixo) {
     }
 }
 
+function exibirSituacao(prefixo, situacao, dataSit) {
+    const el = document.getElementById(prefixo + '-situacao-display');
+    if (!el || !situacao) return;
+
+    const sitUp = situacao.toUpperCase();
+    let cls = 'alert-secondary';
+    let icon = 'fas fa-building';
+    if (sitUp === 'ATIVA')    { cls = 'alert-success'; icon = 'fas fa-check-circle'; }
+    if (sitUp === 'BAIXADA')  { cls = 'alert-secondary'; icon = 'fas fa-ban'; }
+    if (sitUp === 'INAPTA')   { cls = 'alert-danger'; icon = 'fas fa-times-circle'; }
+    if (sitUp === 'SUSPENSA') { cls = 'alert-warning'; icon = 'fas fa-pause-circle'; }
+
+    const dataStr = dataSit ? `<small class="ms-2 opacity-75">desde ${dataSit}</small>` : '';
+    el.className = `alert py-2 px-3 mb-3 ${cls}`;
+    el.innerHTML = `<i class="${icon} me-1"></i><strong>Situação Receita Federal:</strong> ${situacao}${dataStr}`;
+}
+
 function setField(id, value) {
     const el = document.getElementById(id);
-    if (el && value) el.value = value;
+    if (el) el.value = value;
 }
 
 function formatTel(dddTel) {
