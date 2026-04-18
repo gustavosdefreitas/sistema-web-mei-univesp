@@ -13,7 +13,14 @@
                 {% for p in produtos %}
                 <tr>
                     <td>{{ p.nome }}</td>
-                    <td>{{ p.quantidade }}</td>
+                    <td>
+                        {{ p.quantidade }}
+                        {% if p.quantidade <= 5 %}
+                        <span class="badge bg-danger ms-1" title="Estoque baixo!">⚠️ Baixo</span>
+                        {% elif p.quantidade <= 10 %}
+                        <span class="badge bg-warning text-dark ms-1" title="Estoque em atenção">Atenção</span>
+                        {% endif %}
+                    </td>
                     <td>{% if p.empresa_nome %}
                              {{ p.empresa_nome }}
                         {% else %}
