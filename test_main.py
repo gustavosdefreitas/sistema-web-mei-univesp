@@ -29,14 +29,18 @@ def create_test_db():
             razao_social TEXT,
             cnpj TEXT,
             telefone TEXT,
-            email TEXT
+            email TEXT,
+            situacao_cadastral TEXT,
+            data_situacao_cadastral TEXT
         );
         CREATE TABLE fornecedores (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
             cnpj TEXT,
             telefone TEXT,
-            email TEXT
+            email TEXT,
+            situacao_cadastral TEXT,
+            data_situacao_cadastral TEXT
         );
         CREATE TABLE produtos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
