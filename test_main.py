@@ -17,9 +17,11 @@ def create_test_db():
         CREATE TABLE usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
+            nome_completo TEXT,
+            cpf TEXT,
             password TEXT NOT NULL,
             session_id TEXT,
-            perfil TEXT DEFAULT 'user'
+            perfil TEXT DEFAULT 'operador'
         );
         CREATE TABLE empresas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

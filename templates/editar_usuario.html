@@ -13,23 +13,36 @@
             </div>
             <div class="card-body p-4">
                 <form action="/usuarios/editar/{{ usuario.id }}" method="POST">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nome de usuário</label>
-                        <input type="text" name="username" class="form-control"
-                               value="{{ usuario.username }}" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Login de Acesso <span class="text-danger">*</span></label>
+                            <input type="text" name="username" class="form-control"
+                                   value="{{ usuario.username }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Nome Completo</label>
+                            <input type="text" name="nome_completo" class="form-control"
+                                   value="{{ usuario.nome_completo or '' }}" placeholder="Nome completo do usuário">
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Perfil</label>
-                        <select name="perfil" class="form-select" required>
-                            <option value="admin"    {% if usuario.perfil == 'admin'    %}selected{% endif %}>Admin</option>
-                            <option value="operador" {% if usuario.perfil == 'operador' %}selected{% endif %}>Operador</option>
-                            <option value="user"     {% if usuario.perfil == 'user'     %}selected{% endif %}>Usuário</option>
-                        </select>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">CPF</label>
+                            <input type="text" name="cpf" id="cpfEditar" class="form-control"
+                                   value="{{ usuario.cpf or '' }}" placeholder="000.000.000-00" maxlength="14">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Perfil de Acesso <span class="text-danger">*</span></label>
+                            <select name="perfil" class="form-select" required>
+                                <option value="admin"    {% if usuario.perfil == 'admin'    %}selected{% endif %}>Administrador</option>
+                                <option value="operador" {% if usuario.perfil == 'operador' %}selected{% endif %}>Operador</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-bold">Nova senha <span class="text-muted fw-normal">(deixe em branco para manter a atual)</span></label>
+                        <label class="form-label fw-bold">Nova Senha <span class="text-muted fw-normal">(deixe em branco para manter a atual)</span></label>
                         <input type="password" name="password" class="form-control" placeholder="••••••••">
                     </div>
 
@@ -43,6 +56,20 @@
                     </div>
                 </form>
             </div>
+
+<script>
+// Máscara CPF
+const cpfInput = document.getElementById('cpfEditar');
+if (cpfInput) {
+    cpfInput.addEventListener('input', function() {
+        let v = cpfInput.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+        else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+        else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+        cpfInput.value = v;
+    });
+}
+</script>
         </div>
     </div>
 </div>

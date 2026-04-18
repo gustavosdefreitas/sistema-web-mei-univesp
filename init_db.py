@@ -28,9 +28,11 @@ cursor.execute("""
 CREATE TABLE IF NOT EXISTS usuarios (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     username   TEXT    NOT NULL UNIQUE,
+    nome_completo TEXT,
+    cpf        TEXT,
     password   TEXT    NOT NULL,
     session_id TEXT,
-    perfil     TEXT    NOT NULL DEFAULT 'user'
+    perfil     TEXT    NOT NULL DEFAULT 'operador'
 )
 """)
 
