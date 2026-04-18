@@ -71,7 +71,7 @@
                         <tbody>
                             {% for v in vendas %}
                             <tr>
-                                <td class="ps-3 small text-muted">{{ v.data }}</td>
+                                <td class="ps-3 small text-muted">{{ v.data|databr }}</td>
                                 <td class="fw-bold">{{ v.nome }}</td>
                                 <td>{{ v.quantidade }}</td>
                                 <td>R$ {{ "%.2f"|format(v.preco_unitario) }}</td>
