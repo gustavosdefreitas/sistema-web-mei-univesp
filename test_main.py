@@ -566,3 +566,112 @@ def test_editar_fornecedor_sem_auth_redireciona(client):
     )
     assert response.status_code == 303
     assert "/login" in response.headers["location"]
+
+
+# ---------------------------------------------------------------------------
+# Testes do PR #15 — deleção via POST (proteção CSRF)
+# ---------------------------------------------------------------------------
+
+def test_deletar_produto_via_get_nao_existe(authenticated_client):
+    """GET /produtos/deletar/{id} não deve existir — deleção só via POST. (PR #15)"""
+    response = authenticated_client.get("/produtos/deletar/1", follow_redirects=False)
+    assert response.status_code == 405  # Method Not Allowed
+
+
+def test_deletar_fornecedor_via_get_nao_existe(authenticated_client):
+    """GET /fornecedores/deletar/{id} não deve existir — deleção só via POST. (PR #15)"""
+    response = authenticated_client.get("/fornecedores/deletar/1", follow_redirects=False)
+    assert response.status_code == 405
+
+
+def test_deletar_empresa_via_get_nao_existe(authenticated_client):
+    """GET /empresas/deletar/{id} não deve existir — deleção só via POST. (PR #15)"""
+    response = authenticated_client.get("/empresas/deletar/1", follow_redirects=False)
+    assert response.status_code == 405
+
+
+def test_deletar_usuario_via_get_nao_existe(authenticated_client):
+    """GET /usuarios/deletar/{id} não deve existir — deleção só via POST. (PR #15)"""
+    response = authenticated_client.get("/usuarios/deletar/1", follow_redirects=False)
+    assert response.status_code == 405
+
+
+# ---------------------------------------------------------------------------
+# Testes do PR #17 — flags de segurança no cookie de sessão
+# ---------------------------------------------------------------------------
+
+def test_cookie_sessao_tem_flag_httponly(client):
+    """Cookie session_id deve ter flag HttpOnly para impedir acesso via JS. (PR #17)"""
+    response = client.post(
+        "/login",
+        data={"username": "admin", "password": "testpass"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    cookie_header = response.headers.get("set-cookie", "")
+    assert "session_id" in cookie_header
+    assert "httponly" in cookie_header.lower()
+
+
+def test_cookie_sessao_tem_flag_samesite(client):
+    """Cookie session_id deve ter SameSite=lax para proteção CSRF. (PR #17)"""
+    response = client.post(
+        "/login",
+        data={"username": "admin", "password": "testpass"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    cookie_header = response.headers.get("set-cookie", "")
+    assert "samesite" in cookie_header.lower()
+
+
+def test_logout_apaga_cookie_sessao(authenticated_client):
+    """Logout deve enviar Set-Cookie apagando session_id (Max-Age=0). (PR #17)"""
+    response = authenticated_client.get("/logout", follow_redirects=False)
+    assert response.status_code == 303
+    cookie_header = response.headers.get("set-cookie", "")
+    # O cookie deve ser apagado (Max-Age=0 ou expires no passado)
+    assert "session_id" in cookie_header
+    assert "max-age=0" in cookie_header.lower() or "expires" in cookie_header.lower()
+
+
+# ---------------------------------------------------------------------------
+# Testes do PR #18 — hashing bcrypt de senhas
+# ---------------------------------------------------------------------------
+
+def test_hash_password_nao_armazena_texto_plano():
+    """O hash gerado por hash_password não deve ser igual à senha original. (PR #18)"""
+    from main import hash_password
+    senha = "minha_senha_secreta"
+    hashed = hash_password(senha)
+    assert hashed != senha
+
+
+def test_hash_password_usa_bcrypt():
+    """O hash gerado deve começar com prefixo bcrypt '$2b$'. (PR #18)"""
+    from main import hash_password
+    hashed = hash_password("qualquer_senha")
+    assert hashed.startswith("$2b$")
+
+
+def test_verify_password_correto():
+    """verify_password retorna True para senha correta. (PR #18)"""
+    from main import hash_password, verify_password
+    senha = "senha_correta"
+    hashed = hash_password(senha)
+    assert verify_password(senha, hashed) is True
+
+
+def test_verify_password_incorreto():
+    """verify_password retorna False para senha errada. (PR #18)"""
+    from main import hash_password, verify_password
+    hashed = hash_password("senha_correta")
+    assert verify_password("senha_errada", hashed) is False
+
+
+def test_dois_hashes_da_mesma_senha_sao_diferentes():
+    """bcrypt gera salt aleatório — dois hashes da mesma senha devem diferir. (PR #18)"""
+    from main import hash_password
+    h1 = hash_password("mesma_senha")
+    h2 = hash_password("mesma_senha")
+    assert h1 != h2
